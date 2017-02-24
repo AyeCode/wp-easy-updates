@@ -1,0 +1,7 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+
+.external-updates-licence-toggle{color: red;}
+.external-updates-licence-toggle.external-updates-active{color: green;}
