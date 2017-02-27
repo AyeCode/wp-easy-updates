@@ -13,9 +13,9 @@
  * @package           External_Updates
  *
  * @wordpress-plugin
- * Plugin Name:       External Updates
+ * Plugin Name:       Easy External Updates
  * Plugin URI:        http://ayecode.io/
- * Description:       Update plugins provided by EDD software licencing or via github.
+ * Description:       Update plugins provided by EDD software licencing or via github with ease.
  * Version:           1.0.0
  * Author:            Stiofan O'Connor
  * Author URI:        http://ayecode.io/

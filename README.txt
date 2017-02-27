@@ -1,114 +1,75 @@
-=== Plugin Name ===
+=== Easy External Updates ===
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: http://ayecode.io/
-Tags: comments, spam
-Requires at least: 3.0.1
+Tags: EDD, github, updates, external updates, development
+Requires at least: 3.1
 Tested up to: 4.7
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+Update plugins provided by EDD software licencing or via github with ease.
 
 == Description ==
 
-This is the long description.  No limit, and you can use Markdown (as well as in the following sections).
+This plugin will let people update any plugins that are provided through Easy Digital Downloads (EDD) or via github so long as the developer has added 1-2 lines to their plugin.
 
-For backwards compatibility, if this section is missing, the full length of the short description will be used, and
-Markdown parsed.
+If you are running a multisite network then this plugin should be network activated.
 
-A few notes about the sections above:
+= For Developers =
 
-*   "Contributors" is a comma separated list of wp.org/wp-plugins.org usernames
-*   "Tags" is a comma separated list of tags that apply to the plugin
-*   "Requires at least" is the lowest version that the plugin will work on
-*   "Tested up to" is the highest version that you've *successfully used to test the plugin*. Note that it might work on
-higher versions... this is just the highest one you've verified.
-*   Stable tag should indicate the Subversion "tag" of the latest stable version, or "trunk," if you use `/trunk/` for
-stable.
+To make your plugin compatible with all you have to do is add 1-2 lines to your plugins readme.txt
 
-    Note that the `readme.txt` of the stable tag is the one that is considered the defining one for the plugin, so
-if the `/trunk/readme.txt` file says that the stable tag is `4.3`, then it is `/tags/4.3/readme.txt` that'll be used
-for displaying information about the plugin.  In this situation, the only thing considered from the trunk `readme.txt`
-is the stable tag pointer.  Thus, if you develop in trunk, you can update the trunk `readme.txt` to reflect changes in
-your in-development version, without having that information incorrectly disclosed about the current stable version
-that lacks those changes -- as long as the trunk's `readme.txt` points to the correct stable tag.
+EDD Software Licencing:
+To make your plugin compatible with EDD Software Licencing just add the URL of your website and the product id such as
+`Update URL: https://wpgeodirectory/`
+and
+`Update ID: 54321`
+The Update ID is the post ID of the product on your site.
 
-    If no stable tag is provided, it is assumed that trunk is stable, but you should specify "trunk" if that's where
-you put the stable version, in order to eliminate any doubt.
+GitHub:
+To make your plugin compatible with GitHub you just have to add URL of the repo to your plugin readme.txt
+`Update URL: https://github.com/AyeCode/test-product/`
+The system will check for Releases and check the release tag as the version number to compare to.
+
+At the moment this plugin will run a check for each plugin update, when EDD SL v3.6 is release we will be able to send the request as and array so if you have 20 plugins from the same vendor, your site will only send one request instead of 20.
 
 == Installation ==
 
-This section describes how to install the plugin and get it working.
+= Minimum Requirements =
 
-e.g.
+* WordPress 3.1 or greater
+* PHP version 5.2.4 or greater
 
-1. Upload `external-updates.php` to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('plugin_name_hook'); ?>` in your templates
+= Automatic installation =
+
+Automatic installation is the easiest option. To do an automatic install log in to your WordPress dashboard, navigate to the Plugins menu and click Add New.
+
+In the search field type Easy External Updates and click Search Plugins. Once you've found the plugin you install it by simply clicking Install Now.
+
+= Manual installation =
+
+The manual installation method involves downloading the plugin and uploading it to your webserver via your favourite FTP application. The WordPress codex will tell you more [here](http://codex.wordpress.org/Managing_Plugins#Manual_Plugin_Installation).
+
+= Updating =
+
+Automatic updates should seamlessly work. We always suggest you backup up your website before performing any automated update to avoid unforeseen problems.
 
 == Frequently Asked Questions ==
 
-= A question that someone might have =
+= Will EDD users be able to enter and activate their licence key? =
 
-An answer to that question.
+Yes, checkout the Screenshots section.
 
-= What about foo bar? =
+= Will users be able to see update details? =
 
-Answer to foo bar dilemma.
+Yes, this will work as normal, for github the info will be limited to the release description.
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
 
 == Changelog ==
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
+= 1.0.0 =
 
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
-
-== Upgrade Notice ==
-
-= 1.0 =
-Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
-
-= 0.5 =
-This version fixes a security related bug.  Upgrade immediately.
-
-== Arbitrary section ==
-
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
-
-== A brief Markdown Example ==
-
-Ordered list:
-
-1. Some feature
-1. Another feature
-1. Something else about the plugin
-
-Unordered list:
-
-* something
-* something else
-* third thing
-
-Here's a link to [WordPress](http://wordpress.org/ "Your favorite software") and one to [Markdown's Syntax Documentation][markdown syntax].
-Titles are optional, naturally.
-
-[markdown syntax]: http://daringfireball.net/projects/markdown/syntax
-            "Markdown is what the parser uses to process much of the readme file"
-
-Markdown uses email style notation for blockquotes and I've been told:
-> Asterisks for *emphasis*. Double it up  for **strong**.
-
-`<?php code(); // goes in backticks ?>`
+Initial release
