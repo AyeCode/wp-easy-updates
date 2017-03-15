@@ -1,12 +1,13 @@
 === Easy External Updates ===
 Contributors: stiofansisland, paoltaia, ayecode
-Donate link: http://ayecode.io/
+Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
 Tested up to: 4.7
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Update URL: https://github.com/AyeCode/external-updates
 
 Update plugins provided by EDD software licencing or via github with ease.
 
@@ -18,7 +19,7 @@ If you are running a multisite network then this plugin should be network activa
 
 = For Developers =
 
-To make your plugin compatible with all you have to do is add 1-2 lines to your plugins readme.txt
+To make your plugin compatible all you have to do is add 1-2 lines to your plugins readme.txt
 
 EDD Software Licencing:
 To make your plugin compatible with EDD Software Licencing just add the URL of your website and the product id such as

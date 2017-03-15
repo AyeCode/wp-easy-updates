@@ -16,9 +16,9 @@
  * Plugin Name:       Easy External Updates
  * Plugin URI:        http://ayecode.io/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.0.0
- * Author:            Stiofan O'Connor
- * Author URI:        http://ayecode.io/
+ * Version:           1.0.1
+ * Author:            AyeCode Ltd
+ * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       external-updates
