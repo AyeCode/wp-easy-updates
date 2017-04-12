@@ -1,4 +1,4 @@
-=== Easy External Updates ===
+=== WP Easy Updates ===
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development

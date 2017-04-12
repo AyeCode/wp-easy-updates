@@ -13,7 +13,7 @@
  * @package           External_Updates
  *
  * @wordpress-plugin
- * Plugin Name:       Easy External Updates
+ * Plugin Name:       WP Easy Updates
  * Plugin URI:        http://ayecode.io/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
  * Version:           1.0.1
@@ -29,6 +29,9 @@
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
+
+// Define a constant that can be checked against for easy checking of activation status.
+define('WP_EASY_UPDATES_ACTIVE', true);
 
 /**
  * The code that runs during plugin activation.
