@@ -126,7 +126,7 @@ class External_Updates_Admin {
 
 			$ajax_nonce = wp_create_nonce( "exup-ajax-security" );
 
-			$keys = get_option( 'exup_keys', array() );
+			$keys = $this->get_keys();
 
 			if ( isset( $keys[ $plugin_file ] ) && $keys[ $plugin_file ]->key ) {
 
@@ -260,10 +260,10 @@ class External_Updates_Admin {
 			$licence_data      = json_decode( $licence_data_json );
 
 			if ( $licence_data->license == 'valid' ) {
-				$keys              = get_option( 'exup_keys', array() );
+				$keys = $this->get_keys();
 				$licence_data->key = $key;
 				$keys[ $plugin ]   = $licence_data;
-				update_option( 'exup_keys', $keys );
+				$this->update_keys($keys);
 
 				return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
 
@@ -327,10 +327,10 @@ class External_Updates_Admin {
 			$licence_data      = json_decode( $licence_data_json );
 
 			if ( $licence_data->license == 'deactivated' ) {
-				$keys              = get_option( 'exup_keys', array() );
+				$keys = $this->get_keys();
 				$licence_data->key = $key;
 				unset( $keys[ $plugin ] );
-				update_option( 'exup_keys', $keys );
+				$this->update_keys($keys);
 
 				return array( 'success' => __( 'Licence deactivated!', 'external-updates' ) );
 
@@ -414,7 +414,7 @@ class External_Updates_Admin {
 	public function get_plugins_for_update_by_src() {
 		$update_plugins = array();
 		$plugins        = $this->get_plugins_for_update();
-		$keys           = get_option( 'exup_keys', array() );
+		$keys = $this->get_keys();
 
 		foreach ( $plugins as $key => $plugin ) {
 			if ( isset( $plugin['Update URL'] ) && $plugin['Update URL'] ) {
@@ -471,7 +471,7 @@ class External_Updates_Admin {
 		$single       = false;
 		if ( isset( $_data['slug'] ) ) {
 			foreach ( $update_array as $slug => $plugin ) {
-				if ( $_data['slug'] == $plugin['slug'] ) {
+				if ( isset($_data['slug']) && isset($plugin['slug']) && $_data['slug'] == $plugin['slug'] ) {
 					$update_array          = array();
 					$update_array[ $slug ] = $plugin;
 					$single                = true;
@@ -491,6 +491,8 @@ class External_Updates_Admin {
 			'sslverify' => false,
 			'body'      => $api_params
 		) );
+
+		//print_r($request);echo '###'.$_src;
 
 		if ( ! is_wp_error( $request ) ) {
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
@@ -629,10 +631,10 @@ class External_Updates_Admin {
 		$update_id  = $plugins[ $_args->slug ]['Update ID'];
 
 		$update_array[ $_args->slug ] = array(
-			'slug'    => $_args->slug,                      // the addon slug
-			'version' => $plugins[ $_args->slug ]['Version'],       // current version number
-			'license' => '',           // license key (used get_option above to retrieve from DB)
-			'item_id' => $update_id   // id of this addon on GD site
+			'slug'    => $_args->slug,                           // the addon slug
+			'version' => $plugins[ $_args->slug ]['Version'],    // current version number
+			'license' => '',                                     // license key (used get_option above to retrieve from DB)
+			'item_id' => $update_id                              // id of this addon on GD site
 		);
 
 		if ( strpos( $update_url, '://github.com/' ) !== false ) {
@@ -703,5 +705,72 @@ class External_Updates_Admin {
 
 
 		return $false;
+	}
+
+
+	/**
+	 * Fires after each row in the Plugins list table.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $plugin_file Path to the plugin file, relative to the plugins directory.
+	 * @param array  $plugin_data An array of plugin data.
+	 * @param string $status      Status of the plugin. Defaults are 'All', 'Active',
+	 *                            'Inactive', 'Recently Activated', 'Upgrade', 'Must-Use',
+	 *                            'Drop-ins', 'Search'.
+	 */
+	public function show_requires_licence($plugin_file, $plugin_data, $status){
+
+		$keys = $this->get_keys();
+
+
+		if( isset($plugin_data['Update ID']) && $plugin_data['Update ID'] ){
+			
+			if( !isset($keys[$plugin_file]) || $keys[$plugin_file]->key=='' ){
+
+			?>
+			<tr class="wpeu-plugin-licence-required" data-plugin="<?php echo $plugin_file;?>">
+				<td colspan="3" class="plugin-update colspanchange">
+					<div class="notice inline notice-warning notice-alt">
+						<p>
+						<?php
+						if ( is_network_admin() ) {
+							_e( 'This plugin requires a valid licence key to enable automatic updates. Please enter it on the plugins page of the main site where you use the plugin.', 'geodirectory' );
+						}else{
+							_e( 'This plugin requires a valid licence key to enable automatic updates.', 'geodirectory' );
+						}
+						?>
+						</p>
+					</div>
+				</td>
+			</tr>
+			<?php
+			}
+
+		}
+	}
+
+	public function get_keys($network=false){
+
+		if ( is_network_admin() ) {
+			$network = true;
+		}
+
+		if($network){
+			return get_site_option( 'exup_keys', array() );
+		}else{
+			return get_option( 'exup_keys', array() );
+		}
+
+	}
+
+	public function update_keys($keys){
+
+		$network_keys = $this->get_keys(true);
+		$network_keys = $network_keys + $keys;
+		update_site_option( 'exup_keys', $network_keys  ); // update network option
+
+		update_option( 'exup_keys', $keys ); // update single site option
+
 	}
 }

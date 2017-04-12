@@ -5,3 +5,20 @@
 
 .external-updates-licence-toggle{color: red;}
 .external-updates-licence-toggle.external-updates-active{color: green;}
+
+tr.active + tr.wpeu-plugin-licence-required td {
+    background-color: #f7fcfe;
+    border-left: 4px solid #00a0d2;
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-left-color: rgb(0, 160, 210);
+
+    box-shadow: #f7fcfe 0px -1px 0px 0px;
+    border-bottom: 1px solid #ddd;
+}
+
+tr.active.update + tr.wpeu-plugin-licence-required td {
+    box-shadow: inherit;
+    border-bottom: none;
+}
+
