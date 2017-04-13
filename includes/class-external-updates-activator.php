@@ -124,6 +124,11 @@ class External_Updates_Activator {
 								'license'   =>  $licence_keys['geodir_socialimporter']['status'],
 								'key'       =>  $licence_keys['geodir_socialimporter']['licence'],
 							);
+						}elseif($key=='geodir_gd_booster/geodir_gd_booster.php' && isset($licence_keys['geodir-gd-booster'])){
+							$current_keys[$key] = (object) array(
+								'license'   =>  $licence_keys['geodir-gd-booster']['status'],
+								'key'       =>  $licence_keys['geodir-gd-booster']['licence'],
+							);
 						}
 
 					}
