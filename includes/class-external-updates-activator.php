@@ -107,7 +107,7 @@ class External_Updates_Activator {
 						}elseif($key=='geodir_payment_manager/geodir_payment_manager.php' && isset($licence_keys['geodir_payments'])){
 							$current_keys[$key] = (object) array(
 								'license'   =>  $licence_keys['geodir_payments']['status'],
-								'key'       =>  $licence_keys['geodir_payments']['llicence'],
+								'key'       =>  $licence_keys['geodir_payments']['licence'],
 							);
 						}elseif($key=='geodir_recaptcha/geodir_recaptcha.php' && isset($licence_keys['geodir-recaptcha'])){
 							$current_keys[$key] = (object) array(
