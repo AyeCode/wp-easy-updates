@@ -77,20 +77,3 @@ function run_external_updates() {
 }
 run_external_updates();
 
-
-
-
-add_filter('extra_plugin_headers','_my_extra_plugin_headers',10,1);
-
-function _my_extra_plugin_headers($headers){
-	$headers_extra = array(
-		'UpdateURL' => 'Update URL',
-		'UpdateID' => 'Update ID',
-	);
-	$all_headers = array_merge( $headers_extra, (array) $headers);
-	return $all_headers;
-}
-
-//if(!is_admin()){
-//	print_r(get_plugins());
-//}

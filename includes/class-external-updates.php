@@ -154,6 +154,7 @@ class External_Updates {
 		$this->loader->add_filter( 'plugins_api', $plugin_admin, 'plugins_api_filter', 10, 3 );
 		$this->loader->add_filter( 'upgrader_pre_download', $plugin_admin, 'update_errors', 10, 3 );
 		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_requires_licence', 10, 3 );
+		$this->loader->add_filter( 'extra_plugin_headers', $plugin_admin, 'add_extra_plugin_headers', 10, 1 );
 
 
 	}

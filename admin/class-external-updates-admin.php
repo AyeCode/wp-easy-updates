@@ -750,6 +750,13 @@ class External_Updates_Admin {
 		}
 	}
 
+	/**
+	 * Get the saved licence keys.
+	 *
+	 * @since 1.0.1
+	 * @param bool $network If network settings should be used.
+	 * @return array The array of licence information.
+	 */
 	public function get_keys($network=false){
 
 		if ( is_network_admin() ) {
@@ -764,6 +771,12 @@ class External_Updates_Admin {
 
 	}
 
+	/**
+	 * Save and update the licence key info.
+	 *
+	 * @since 1.0.1
+	 * @param array $keys The licence key info to save.
+	 */
 	public function update_keys($keys){
 
 		$network_keys = $this->get_keys(true);
@@ -772,5 +785,21 @@ class External_Updates_Admin {
 
 		update_option( 'exup_keys', $keys ); // update single site option
 
+	}
+
+	/**
+	 * Adds our own paramiters to the plugin header DocBlock info.
+	 *
+	 * @since 1.0.0
+	 * @param array $headers The plugin header info array.
+	 * @return array The plugin header array info.
+	 */
+	public function  add_extra_plugin_headers($headers){
+		$headers_extra = array(
+			'UpdateURL' => 'Update URL',
+			'UpdateID' => 'Update ID',
+		);
+		$all_headers = array_merge( $headers_extra, (array) $headers);
+		return $all_headers;
 	}
 }

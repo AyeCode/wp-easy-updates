@@ -17,6 +17,11 @@ tr.active + tr.wpeu-plugin-licence-required td {
     border-bottom: 1px solid #ddd;
 }
 
+tr.inactive + tr.wpeu-plugin-licence-required td {
+    box-shadow: #f7fcfe 0px -1px 0px 0px;
+    border-bottom: 1px solid #ddd;
+}
+
 tr.active.update + tr.wpeu-plugin-licence-required td {
     box-shadow: inherit;
     border-bottom: none;

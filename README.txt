@@ -19,7 +19,7 @@ If you are running a multisite network then this plugin should be network activa
 
 = For Developers =
 
-To make your plugin compatible all you have to do is add 1-2 lines to your plugins readme.txt
+To make your plugin compatible all you have to do is add 1-2 lines to your plugins main PHP file DocBlock.
 
 EDD Software Licencing:
 To make your plugin compatible with EDD Software Licencing just add the URL of your website and the product id such as
@@ -29,7 +29,7 @@ and
 The Update ID is the post ID of the product on your site.
 
 GitHub:
-To make your plugin compatible with GitHub you just have to add URL of the repo to your plugin readme.txt
+To make your plugin compatible with GitHub you just have to add URL of the repo to your plugins main PHP file DocBlock.
 `Update URL: https://github.com/AyeCode/test-product/`
 The system will check for Releases and check the release tag as the version number to compare to.
 
