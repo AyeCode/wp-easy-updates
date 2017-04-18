@@ -7,7 +7,6 @@ Tested up to: 4.7
 Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Update URL: https://github.com/AyeCode/external-updates
 
 Update plugins provided by EDD software licencing or via github with ease.
 
