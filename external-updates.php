@@ -16,7 +16,7 @@
  * Plugin Name:       WP Easy Updates
  * Plugin URI:        http://ayecode.io/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Author:            AyeCode Ltd
  * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
