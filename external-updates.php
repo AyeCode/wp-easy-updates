@@ -23,7 +23,7 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       external-updates
  * Domain Path:       /languages
- * Update URL:        https://github.com/AyeCode/external-updates/
+ * Update URL:        https://github.com/AyeCode/wp-easy-updates/
  */
 
 // If this file is called directly, abort.
