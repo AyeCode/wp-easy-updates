@@ -70,6 +70,11 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.0
+Theme update support added for both github and EDD - ADDED
+Updates from github can change the folder name of plugins - FIXED
+Theme licences can be added via Themes > Theme Details page - ADDED
+
 = 1.0.4 =
 
 Initial release

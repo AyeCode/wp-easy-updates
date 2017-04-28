@@ -37,6 +37,84 @@ function exup_enter_licence_key(link){
 	jQuery(link).next('.external-updates-key-input').toggle('slow');
 }
 
+function exup_activate_theme_licence_key(theme,themeName,exupNonce){
+	console.log(jQuery(theme).prev().prev('.external-updates-key-value').val());
+	console.log(themeName);
+
+	var key = jQuery(theme).prev().prev('.external-updates-key-value').val();
+	if(!key){return;}
+
+	var data = {
+		'security': exupNonce,
+		'action': 'exup_ajax_handler',
+		'exup_action': 'activate_key',
+		'exup_key': key,
+		'exup_theme': themeName
+	};
+
+	console.log(data);
+
+	jQuery.post(ajaxurl, data, function(response) {
+		var obj = jQuery.parseJSON(response);
+		console.log(response);
+		if(obj.error){alert(obj.error);}
+		else if(obj.success){
+
+
+			jQuery(theme).hide();
+			jQuery(theme).prev('.button-primary').show();
+			jQuery(theme).prev().prev('.external-updates-key-value').prop('disabled', true);
+			jQuery(theme).parent().parent().parent().removeClass('notice-warning');
+			//jQuery(theme).parent().parent().toggle('slow');
+
+			alert(obj.success);
+			location.reload();
+
+
+		}else{
+			alert('error');
+		}
+	});
+}
+
+function exup_deactivate_theme_licence_key(theme,themeName,exupNonce){
+	console.log(jQuery(theme).prev('.external-updates-key-value').val());
+	console.log(themeName);
+
+	var key = jQuery(theme).prev('.external-updates-key-value').val();
+	if(!key){return;}
+
+	var data = {
+		'security': exupNonce,
+		'action': 'exup_ajax_handler',
+		'exup_action': 'deactivate_key',
+		'exup_key': key,
+		'exup_theme': themeName
+	};
+
+	jQuery.post(ajaxurl, data, function(response) {
+		var obj = jQuery.parseJSON(response);
+		console.log(response);
+		if(obj.error){alert(obj.error);}
+		else if(obj.success){
+			//alert(obj.success);
+
+			jQuery(theme).hide();
+			jQuery(theme).next('.button-primary').show();
+			jQuery(theme).prev('.external-updates-key-value').val('');
+			jQuery(theme).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(theme).parent().parent().parent().addClass('notice-warning');
+
+			//jQuery(theme).parent().parent().toggle('slow');
+			alert(obj.success);
+			location.reload();
+
+
+		}else{
+			alert('error');
+		}
+	});
+}
 
 function exup_activate_licence_key(plugin,pluginName,exupNonce){
 	console.log(jQuery(plugin).prev().prev('.external-updates-key-value').val());

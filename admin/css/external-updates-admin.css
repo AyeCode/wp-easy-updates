@@ -27,3 +27,6 @@ tr.active.update + tr.wpeu-plugin-licence-required td {
     border-bottom: none;
 }
 
+.external-updates-key-value{
+    padding: 5px;
+}
