@@ -12,27 +12,27 @@ Update plugins provided by EDD software licencing or via github with ease.
 
 == Description ==
 
-This plugin will let people update any plugins that are provided through Easy Digital Downloads (EDD) or via github so long as the developer has added 1-2 lines to their plugin.
+This plugin will let people update any plugins or themes that are provided through Easy Digital Downloads (EDD) or via github so long as the developer has added 1-2 lines to their plugin/theme.
 
 If you are running a multisite network then this plugin should be network activated.
 
 = For Developers =
 
-To make your plugin compatible all you have to do is add 1-2 lines to your plugins main PHP file DocBlock.
+To make your plugin compatible all you have to do is add 1-2 lines to your plugins main PHP file DocBlock or your theme style.css.
 
 EDD Software Licencing:
-To make your plugin compatible with EDD Software Licencing just add the URL of your website and the product id such as
+To make your plugin/theme compatible with EDD Software Licencing just add the URL of your website and the product id such as
 `Update URL: https://wpgeodirectory/`
 and
 `Update ID: 54321`
 The Update ID is the post ID of the product on your site.
 
 GitHub:
-To make your plugin compatible with GitHub you just have to add URL of the repo to your plugins main PHP file DocBlock.
+To make your plugin/theme compatible with GitHub you just have to add URL of the repo to your plugins main PHP file DocBlock.
 `Update URL: https://github.com/AyeCode/test-product/`
 The system will check for Releases and check the release tag as the version number to compare to.
 
-At the moment this plugin will run a check for each plugin update, when EDD SL v3.6 is release we will be able to send the request as and array so if you have 20 plugins from the same vendor, your site will only send one request instead of 20.
+At the moment this plugin will run a check for each plugin/theme update, when EDD SL v3.6 is release we will be able to send the request as and array so if you have 20 plugins from the same vendor, your site will only send one request instead of 20.
 
 == Installation ==
 
