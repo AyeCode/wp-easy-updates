@@ -818,7 +818,7 @@ class External_Updates_Admin {
 				                                . sprintf( __( 'A licence key is required to update, please enter it under: Plugins > %s > Licence key.', 'external-updates' ), $plugin_name );
 			}
 
-		}elseif(isset($Uthis->skin->theme_info) && $Uthis->skin->theme_info->get("Update ID")){// check if we are dealing with a theme that requires a licence key
+		}elseif(isset($Uthis->skin) && isset($Uthis->skin->theme_info) && $Uthis->skin->theme_info->get("Update ID")){// check if we are dealing with a theme that requires a licence key
 			$plugin_name = ( $Uthis->skin->theme_info->get("Name") ) ? $Uthis->skin->theme_info->get("Name") : __( 'Theme Name', 'external-updates' );
 			if ( is_network_admin() ) {
 				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' '
