@@ -69,7 +69,7 @@ class External_Updates {
 	public function __construct() {
 
 		$this->plugin_name = 'external-updates';
-		$this->version = '1.0.0';
+		$this->version = WP_EASY_UPDATES_VERSION;
 
 		$this->load_dependencies();
 		$this->set_locale();

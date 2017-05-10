@@ -31,8 +31,12 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+// Define the version number
+define('WP_EASY_UPDATES_VERSION', '1.1.1');
+
 // Define a constant that can be checked against for easy checking of activation status.
 define('WP_EASY_UPDATES_ACTIVE', true);
+
 
 /**
  * The code that runs during plugin activation.
