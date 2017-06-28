@@ -729,7 +729,7 @@ class External_Updates_Admin {
 				$readme = $this->readme_parse_content($package_info->upgrade_notice_raw);
 
 				if(isset($readme['version']) && $update_array[ $name ]['version'] < $readme['version']){
-					$package_info->upgrade_notice = $readme['content'];
+					$package_info->upgrade_notice = $this->upgrade_notice_output($readme['content'],$package_info->name);
 				}
 			}
 
@@ -901,12 +901,6 @@ class External_Updates_Admin {
 			</tr>
 			<?php
 			}
-
-//			echo 'xxxxxxxxxxxx';
-//			if (isset($plugin_data->upgrade_notice) && strlen(trim($plugin_data->upgrade_notice)) > 0){
-//				echo '<p style="background-color: #d54e21; padding: 10px; color: #f9f9f9; margin-top: 10px"><strong>Important Upgrade Notice:</strong> ';
-//				echo esc_html($plugin_data->upgrade_notice), '</p>';
-//			}
 
 		}
 	}
@@ -1099,6 +1093,61 @@ class External_Updates_Admin {
 
 	}
 
+	/**
+	 * Fires after each row in the Plugins list table.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $plugin_file Path to the plugin file, relative to the plugins directory.
+	 * @param array  $plugin_data An array of plugin data.
+	 * @param string $status      Status of the plugin. Defaults are 'All', 'Active',
+	 *                            'Inactive', 'Recently Activated', 'Upgrade', 'Must-Use',
+	 *                            'Drop-ins', 'Search'.
+	 */
+	public function show_upgrade_notice($plugin_file, $plugin_data, $status){
+
+
+		if( isset($plugin_data['Update ID']) && $plugin_data['Update ID'] ){
+
+			if (isset($plugin_data['upgrade_notice']) && strlen(trim($plugin_data['upgrade_notice'])) > 0){
+
+				$class = 'inactive';
+				if(!is_network_admin() && is_plugin_active($plugin_file)){
+					$class = 'active';
+				}
+				print_r($plugin_data);
+				?>
+				<tr class="<?php echo $class;?> wpeu-plugin-upgrade-notice" data-plugin="<?php echo $plugin_file;?>">
+					<td colspan="3" class="wpeu-upgrade-notice colspanchange">
+							<p>
+								<?php
+								echo $plugin_data['upgrade_notice'];
+								?>
+							</p>
+					</td>
+				</tr>
+				<?php
+			}
+
+
+		}
+	}
+
+	/**
+	 * Style and escape the upgrade notice.
+	 *
+	 * @since 1.1.2
+	 * @param $notice string The upgrade notice string.
+	 * @param $name string The plugin name.
+	 *
+	 * @return string The styled and escaped upgradenotice.
+	 */
+	public function upgrade_notice_output($notice,$name){
+		$html = '<p style="background-color: #d54e21; padding: 10px; color: #f9f9f9; margin-top: 10px">';
+		$html .= '<strong>'.sprintf( __( 'IMPORTANT UPGRADE NOTICE ( %s ):', 'external-updates' ), $name ).'</strong> ';
+		$html .= esc_html($notice). '</p>';
+		return $html;
+	}
 
 
 

@@ -70,9 +70,12 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.2 =
+If deactivating licence fails the licence is not removed - FIXED
+Added ability to show Upgrade Notice messages - ADDED
+
 = 1.1.1 =
 Sometimes on update/install theme info is not defined and causes it to freeze - FIXED
-If deactivating licence fails the licence is not removed - FIXED
 
 = 1.1.0
 Theme update support added for both github and EDD - ADDED
