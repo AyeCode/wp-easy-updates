@@ -337,21 +337,22 @@ class External_Updates_Admin {
 
 		// make sure the response came back okay
 		if ( is_wp_error( $response ) ) {
-			return false;
+			return array( 'error' => __( 'Could not connect to licence server.', 'external-updates' ) );
 		} else {
 
 			// decode the license data
 			$licence_data_json = wp_remote_retrieve_body( $response );
 			$licence_data      = json_decode( $licence_data_json );
 
+			// we remove the licence no matter the response so a new one can be added
+			$keys = $this->get_keys();
+			$licence_data->key = $key;
+			unset( $keys[ $package ] );
+			$this->update_keys($keys);
+
+			// return the response
 			if ( $licence_data->license == 'deactivated' ) {
-				$keys = $this->get_keys();
-				$licence_data->key = $key;
-				unset( $keys[ $package ] );
-				$this->update_keys($keys);
-
 				return array( 'success' => __( 'Licence deactivated!', 'external-updates' ) );
-
 			} elseif ( $licence_data->license == 'invalid' ) {
 				return array( 'error' => __( 'Licence key is invalid', 'external-updates' ) );
 			} else {
@@ -423,7 +424,7 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false ) {
+					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false ) {
 						$edd_send_array = true;
 					}
 
@@ -452,7 +453,26 @@ class External_Updates_Admin {
 			}
 		}
 
+		//print_r($_transient_data);
+
+
+
 		return $_transient_data;
+	}
+
+	public function readme_parse_content( $content = '' ) {
+
+		$parsed = '';
+		preg_match('/=(.*?)=/', $content, $info);
+
+		if(!empty($info)){
+			$parsed['version'] = trim($info[1]);
+			$parsed['content'] = trim(str_replace($info[0],'',$content));
+
+		}
+
+		return $parsed;
+
 	}
 
 	public function get_packages_for_update_by_src( $type ) {
@@ -702,6 +722,17 @@ class External_Updates_Admin {
 		$update_array = $this->get_packages_for_update( $type );
 
 		foreach ( $version_info as $name => $package_info ) {
+
+			// check for upgrade notice info
+			if( isset($package_info->upgrade_notice_raw) && $package_info->upgrade_notice_raw!='' && !isset($package_info->upgrade_notice) ){
+
+				$readme = $this->readme_parse_content($package_info->upgrade_notice_raw);
+
+				if(isset($readme['version']) && $update_array[ $name ]['version'] < $readme['version']){
+					$package_info->upgrade_notice = $readme['content'];
+				}
+			}
+
 			if ( version_compare( $update_array[ $name ]['version'], $package_info->new_version, '<' ) ) {
 				if($type =='theme'){
 					$_transient_data->response[ $name ] = (array) $package_info;
@@ -716,7 +747,6 @@ class External_Updates_Admin {
 
 		return $_transient_data;
 	}
-
 
 
 	/**
@@ -871,6 +901,12 @@ class External_Updates_Admin {
 			</tr>
 			<?php
 			}
+
+//			echo 'xxxxxxxxxxxx';
+//			if (isset($plugin_data->upgrade_notice) && strlen(trim($plugin_data->upgrade_notice)) > 0){
+//				echo '<p style="background-color: #d54e21; padding: 10px; color: #f9f9f9; margin-top: 10px"><strong>Important Upgrade Notice:</strong> ';
+//				echo esc_html($plugin_data->upgrade_notice), '</p>';
+//			}
 
 		}
 	}

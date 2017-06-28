@@ -95,7 +95,12 @@ function exup_deactivate_theme_licence_key(theme,themeName,exupNonce){
 	jQuery.post(ajaxurl, data, function(response) {
 		var obj = jQuery.parseJSON(response);
 		console.log(response);
-		if(obj.error){alert(obj.error);}
+		if(obj.error){
+			alert(obj.error);
+			jQuery(theme).prev('.external-updates-key-value').val('');
+			jQuery(theme).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(theme).parent().parent().parent().addClass('notice-warning');
+		}
 		else if(obj.success){
 			//alert(obj.success);
 
@@ -169,7 +174,12 @@ function exup_deactivate_licence_key(plugin,pluginName,exupNonce){
 	jQuery.post(ajaxurl, data, function(response) {
 		var obj = jQuery.parseJSON(response);
 		console.log(response);
-		if(obj.error){alert(obj.error);}
+		if(obj.error){
+			alert(obj.error);
+			jQuery(plugin).prev('.external-updates-key-value').val('');
+			jQuery(plugin).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').removeClass('external-updates-active');
+		}
 		else if(obj.success){
 			alert(obj.success);
 
