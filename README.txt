@@ -70,6 +70,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.3 =
+Banner warning not defined if updating from github - FIXED
+
 = 1.1.2 =
 If deactivating licence fails the licence is not removed - FIXED
 Added ability to show Upgrade Notice messages - ADDED

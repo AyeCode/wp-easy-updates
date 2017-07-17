@@ -802,7 +802,10 @@ class External_Updates_Admin {
 		}
 
 
-		$_data->banners = maybe_unserialize( $_data->banners );
+		if(isset($_data->banners)){
+			$_data->banners = maybe_unserialize( $_data->banners );
+		}
+
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
 		if ( isset( $_data->banners ) && ! is_array( $_data->banners ) ) {
 			$new_banners = array();
