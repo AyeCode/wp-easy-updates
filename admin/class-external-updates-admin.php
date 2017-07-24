@@ -249,7 +249,7 @@ class External_Updates_Admin {
 
 		// make sure the response came back okay
 		if ( is_wp_error( $response ) ) {
-			return false;
+			return array('error' => $response->get_error_message());
 		} else {
 
 			// decode the license data
