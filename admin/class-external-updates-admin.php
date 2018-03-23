@@ -683,8 +683,8 @@ class External_Updates_Admin {
 		 */
 		$info->{$_data['slug']}->url            = isset( $release->html_url ) ? $release->html_url : '';
 		$info->{$_data['slug']}->sections       = array(
-			'description' => isset( $release->body ) ? $release->body : '',
-			'changelog'   => isset( $release->body ) ? $release->body : '',
+			'description' => isset( $release->body ) ? wpautop($release->body) : '',
+			'changelog'   => isset( $release->body ) ? wpautop($release->body) : '',
 		);
 
 		return $info;
@@ -718,6 +718,9 @@ class External_Updates_Admin {
 	 */
 	public function process_update_transient_data( $version_info, $_transient_data, $type ) {
 
+		if(!is_object($_transient_data)){
+			return $_transient_data;
+		}
 
 		$update_array = $this->get_packages_for_update( $type );
 

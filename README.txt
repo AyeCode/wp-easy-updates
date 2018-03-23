@@ -3,8 +3,8 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
-Tested up to: 4.7
-Stable tag: 1.1.1
+Tested up to: 4.9.5
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,6 +73,8 @@ Yes, this will work as normal, for github the info will be limited to the releas
 = 1.1.3 =
 Banner warning not defined if updating from github - FIXED
 Echo error when activation fails to provide more reason - CHANGED
+Check added to $_transient_data to make sure it is an object - CHANGED
+Changelog from github has no line breaks - FIXED
 
 = 1.1.2 =
 If deactivating licence fails the licence is not removed - FIXED
