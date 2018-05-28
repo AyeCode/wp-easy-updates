@@ -70,6 +70,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.4 =
+GitHub updates can sometimes change the plugin folder name - FIXED
+
 = 1.1.3 =
 Banner warning not defined if updating from github - FIXED
 Echo error when activation fails to provide more reason - CHANGED

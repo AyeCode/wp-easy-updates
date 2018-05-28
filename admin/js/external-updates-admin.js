@@ -197,4 +197,43 @@ function exup_deactivate_licence_key(plugin,pluginName,exupNonce){
 	});
 }
 
+function exup_install_from_licence_key(plugin,pluginName,exupNonce){
+	console.log(jQuery(plugin).prev('.external-updates-key-value').val());
+	console.log(pluginName);
 
+	var key = jQuery(plugin).prev('.external-updates-key-value').val();
+	if(!key){return;}
+
+	var data = {
+		'security': exupNonce,
+		'action': 'exup_ajax_handler',
+		'exup_action': 'deactivate_key',
+		'exup_key': key,
+		'exup_plugin': pluginName
+	};
+
+	jQuery.post(ajaxurl, data, function(response) {
+		var obj = jQuery.parseJSON(response);
+		console.log(response);
+		if(obj.error){
+			alert(obj.error);
+			jQuery(plugin).prev('.external-updates-key-value').val('');
+			jQuery(plugin).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').removeClass('external-updates-active');
+		}
+		else if(obj.success){
+			alert(obj.success);
+
+			jQuery(plugin).hide();
+			jQuery(plugin).next('.button-primary').show();
+			jQuery(plugin).prev('.external-updates-key-value').val('');
+			jQuery(plugin).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').removeClass('external-updates-active');
+			jQuery(plugin).parent().parent().toggle('slow');
+
+
+		}else{
+			alert('error');
+		}
+	});
+}

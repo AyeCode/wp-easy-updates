@@ -462,13 +462,12 @@ class External_Updates_Admin {
 
 	public function readme_parse_content( $content = '' ) {
 
-		$parsed = '';
+		$parsed = array();
 		preg_match('/=(.*?)=/', $content, $info);
 
 		if(!empty($info)){
 			$parsed['version'] = trim($info[1]);
 			$parsed['content'] = trim(str_replace($info[0],'',$content));
-
 		}
 
 		return $parsed;
@@ -597,11 +596,13 @@ class External_Updates_Admin {
 		}
 
 
+
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
 			'sslverify' => false,
 			'body'      => $api_params
 		) );
+		
 
 
 		if ( ! is_wp_error( $request ) ) {
@@ -703,7 +704,9 @@ class External_Updates_Admin {
 	public function unserialize_response( $response ) {
 
 		foreach ( $response as $rslug => $rplugin ) {
-			$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+			if(isset($response->{$rslug}->sections)){
+				$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+			}
 		}
 
 		return $response;
@@ -736,7 +739,7 @@ class External_Updates_Admin {
 				}
 			}
 
-			if ( version_compare( $update_array[ $name ]['version'], $package_info->new_version, '<' ) ) {
+			if ( isset($package_info->new_version) && version_compare( $update_array[ $name ]['version'], $package_info->new_version, '<' ) ) {
 				if($type =='theme'){
 					$_transient_data->response[ $name ] = (array) $package_info;
 				}else{
@@ -764,21 +767,21 @@ class External_Updates_Admin {
 	 * @return object $_data
 	 */
 	public function plugins_api_filter( $_data, $_action = '', $_args = null ) {
-
 		$plugins = $this->get_packages_for_update('plugin');
 
-		if ( $_action != 'plugin_information' || ! isset( $_args->slug ) || ( ! array_key_exists( $_args->slug, $plugins ) ) ) {
+		if ( $_action != 'plugin_information' || ! isset( $_args->slug ) || ( ! array_key_exists( $_args->slug, $plugins ) && !isset($_REQUEST['update_url']) ) ) {
 			return $_data;
 		}
 
-
-		$update_url = $plugins[ $_args->slug ]['Update URL'];
-		$update_id  = $plugins[ $_args->slug ]['Update ID'];
+		$update_url = isset($plugins[ $_args->slug ]['Update URL']) ? $plugins[ $_args->slug ]['Update URL'] : esc_url($_REQUEST['update_url']);
+		$update_id  = isset($plugins[ $_args->slug ]['Update ID']) ? $plugins[ $_args->slug ]['Update ID'] : '';
+		if(!$update_id && isset($_REQUEST['item_id'])){$update_id = absint($_REQUEST['item_id']);}
+		$licence = isset($_REQUEST['license']) ? esc_attr($_REQUEST['license']) : '';
 
 		$update_array[ $_args->slug ] = array(
 			'slug'    => $_args->slug,                           // the addon slug
-			'version' => $plugins[ $_args->slug ]['Version'],    // current version number
-			'license' => '',                                     // license key (used get_option above to retrieve from DB)
+			'version' => isset($plugins[ $_args->slug ]['Version']) ? $plugins[ $_args->slug ]['Version'] : '',    // current version number
+			'license' => $licence,                               // license key (used get_option above to retrieve from DB)
 			'item_id' => $update_id                              // id of this addon on GD site
 		);
 
@@ -803,6 +806,14 @@ class External_Updates_Admin {
 
 			$_data->sections = $new_sections;
 		}
+
+		// strip shortcodes from description
+		if(isset($_data->sections['description']) && $_data->sections['description']){
+			$_data->sections['description'] = strip_shortcodes($_data->sections['description']);
+		}
+
+		// add licence input
+		//$_data->sections['licence key'] = '12345'.print_r($this->get_keys(),true); // @todo this would be a nice section to add
 
 
 		if(isset($_data->banners)){
@@ -953,6 +964,12 @@ class External_Updates_Admin {
 				$update_url = $theme->get('Update URL');
 				$proper_destination = trailingslashit(dirname($source)).trailingslashit($hook_extra[$type]);
 			}else{
+				
+				// set plugin_info if not set
+				if(!isset($upgrader->skin->plugin_info) && isset($upgrader->skin->plugin)){
+					$upgrader->skin->plugin_info = get_plugin_data( WP_PLUGIN_DIR . '/' . $upgrader->skin->plugin, false, true);
+				}
+
 				$update_url = isset($upgrader->skin->plugin_info['Update URL']) ? $upgrader->skin->plugin_info['Update URL'] : '';
 
 				if ( strpos( $hook_extra[$type], '/' ) !== false ) { // its a folder
@@ -1153,6 +1170,33 @@ class External_Updates_Admin {
 		$html .= '<strong>'.sprintf( __( 'IMPORTANT UPGRADE NOTICE ( %s ):', 'external-updates' ), $name ).'</strong> ';
 		$html .= esc_html($notice). '</p>';
 		return $html;
+	}
+
+
+	/**
+	 * Add the `View details` link back to the plugins page.
+	 *
+	 * @param $plugin_meta
+	 * @param $plugin_file
+	 * @param $plugin_data
+	 * @param $status
+	 *
+	 * @return array
+	 */
+	public function plugin_row_meta($plugin_meta, $plugin_file, $plugin_data, $status){
+		// check if we are using WPEU
+		if(isset($plugin_data['Update URL']) && $plugin_data['Update URL'] && isset($plugin_data['Update ID']) && $plugin_data['Update ID']){
+			$plugin_name = $plugin_data['Name'];
+
+			$plugin_meta[] = sprintf( '<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
+				esc_url( network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . $plugin_file .
+				                            '&TB_iframe=true&width=600&height=550&update_url='.$plugin_data['Update URL'].'&item_id='.$plugin_data['Update ID'] ) ),
+				esc_attr( sprintf( __( 'More information about %s' ), $plugin_name ) ),
+				esc_attr( $plugin_name ),
+				__( 'View details' )
+			);
+		}
+		return $plugin_meta;
 	}
 
 

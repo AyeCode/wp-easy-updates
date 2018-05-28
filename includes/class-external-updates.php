@@ -157,6 +157,9 @@ class External_Updates {
 		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_upgrade_notice', 10, 3 );
 		$this->loader->add_filter( 'extra_plugin_headers', $plugin_admin, 'add_extra_package_headers', 10, 1 );
 		$this->loader->add_filter( 'upgrader_source_selection', $plugin_admin, 'fix_source_destination', 10, 4 );
+
+		// Set the more info plugin details
+		$this->loader->add_filter( 'plugin_row_meta', $plugin_admin, 'plugin_row_meta', 10, 4 );
 		
 		// Theme stuff
 		$this->loader->add_filter( 'pre_set_site_transient_update_themes', $plugin_admin, 'check_for_theme_updates' );
