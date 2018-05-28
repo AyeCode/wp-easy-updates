@@ -14,9 +14,9 @@
  *
  * @wordpress-plugin
  * Plugin Name:       WP Easy Updates
- * Plugin URI:        http://ayecode.io/
+ * Plugin URI:        https://wpeasyupdates.com/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.1.3
+ * Version:           1.1.4
  * Author:            AyeCode Ltd
  * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
@@ -32,7 +32,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define the version number
-define('WP_EASY_UPDATES_VERSION', '1.1.3');
+define('WP_EASY_UPDATES_VERSION', '1.1.4');
 
 // Define a constant that can be checked against for easy checking of activation status.
 define('WP_EASY_UPDATES_ACTIVE', true);
