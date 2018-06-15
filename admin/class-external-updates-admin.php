@@ -243,7 +243,7 @@ class External_Updates_Admin {
 		// Call the custom API.
 		$response = wp_remote_post( $update_url, array(
 			'timeout'   => 15,
-			'sslverify' => false,
+			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
 
@@ -331,7 +331,7 @@ class External_Updates_Admin {
 		// Call the custom API.
 		$response = wp_remote_post( $update_url, array(
 			'timeout'   => 15,
-			'sslverify' => false,
+			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
 
@@ -424,7 +424,7 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false ) {
+					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
 						$edd_send_array = true;
 					}
 
@@ -454,8 +454,6 @@ class External_Updates_Admin {
 		}
 
 		//print_r($_transient_data);
-
-
 
 		return $_transient_data;
 	}
@@ -599,7 +597,7 @@ class External_Updates_Admin {
 
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
-			'sslverify' => false,
+			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
 		
@@ -637,7 +635,7 @@ class External_Updates_Admin {
 
 		$request = wp_remote_get( $_src, array(
 			'timeout'   => 15,
-			'sslverify' => false,
+			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => ''
 		) );
 
@@ -1035,7 +1033,9 @@ class External_Updates_Admin {
 
 				if(isset($prepared_themes[$key])){
 
-					$prepared_themes[$key]['description'] = $this->render_licence_actions($key, 'theme'). $prepared_themes[$key]['description'];
+					if( !empty($theme['Update ID']) ){ // only show key input if a Update ID is set.
+						$prepared_themes[$key]['description'] = $this->render_licence_actions($key, 'theme'). $prepared_themes[$key]['description'];
+					}
 				}
 
 			}

@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Easy External Updates 1.1.4\n"
+"Project-Id-Version: Easy External Updates 1.1.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-05-28 16:35+0100\n"
-"PO-Revision-Date: 2018-05-28 16:35+0100\n"
+"POT-Creation-Date: 2018-06-15 14:53+0100\n"
+"PO-Revision-Date: 2018-06-15 14:53+0100\n"
 "Last-Translator: \n"
 "Language-Team: GeoDirectory <info@ayecode.io>\n"
 "Language: en_US\n"
@@ -40,49 +40,49 @@ msgstr ""
 msgid "Licence deactivated!"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:859
+#: admin/class-external-updates-admin.php:857
 msgid "Plugin Name"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:862
+#: admin/class-external-updates-admin.php:860
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under the main site: "
 "Plugins > %s > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:865
+#: admin/class-external-updates-admin.php:863
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under: Plugins > %s > "
 "Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:869
+#: admin/class-external-updates-admin.php:867
 msgid "Theme Name"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:872
+#: admin/class-external-updates-admin.php:870
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under the main site: "
 "Themes > %s > Theme Details > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:875
+#: admin/class-external-updates-admin.php:873
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under: Themes > %s > "
 "Theme Details > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:910
+#: admin/class-external-updates-admin.php:908
 msgid ""
 "This plugin requires a valid licence key to enable automatic updates. Please "
 "enter it on the plugins page of the main site where you use the plugin."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:912
+#: admin/class-external-updates-admin.php:910
 msgid "This plugin requires a valid licence key to enable automatic updates."
 msgstr ""
 
