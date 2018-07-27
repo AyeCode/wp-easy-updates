@@ -237,3 +237,73 @@ function exup_install_from_licence_key(plugin,pluginName,exupNonce){
 		}
 	});
 }
+
+
+function exup_activate_membership_licence_key(plugin,pluginName,exupNonce,item_ids){
+	console.log(jQuery(plugin).prev().prev('.external-updates-key-value').val());
+	console.log(pluginName);
+
+	var key = jQuery(plugin).prev().prev('.external-updates-key-value').val();
+	if(!key){return;}
+
+	var data = {
+		'security': exupNonce,
+		'action': 'exup_ajax_handler',
+		'exup_action': 'activate_membership_key',
+		'exup_key': key,
+		'exup_domain': pluginName,
+		'exup_item_ids'	: item_ids
+	};
+
+	jQuery.post(ajaxurl, data, function(response) {
+		var obj = jQuery.parseJSON(response);
+		console.log(response);
+		if(obj.error){alert(obj.error);}
+		else if(obj.success){
+			alert(obj.success);
+			location.reload();
+			// jQuery(plugin).prev('.button-primary').show();
+			// jQuery(plugin).prev().prev('.external-updates-key-value').prop('disabled', true);
+			// jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').addClass('external-updates-active');
+
+
+		}else{
+			alert('error');
+		}
+	});
+}
+
+
+function exup_deactivate_membership_licence_key(plugin,pluginName,exupNonce,item_ids){
+	console.log(jQuery(plugin).prev('.external-updates-key-value').val());
+	console.log(pluginName);
+
+	var key = jQuery(plugin).prev('.external-updates-key-value').val();
+	if(!key){return;}
+
+	var data = {
+		'security': exupNonce,
+		'action': 'exup_ajax_handler',
+		'exup_action': 'deactivate_membership_key',
+		'exup_key': key,
+		'exup_domain': pluginName,
+		'exup_item_ids'	: item_ids
+	};
+
+	jQuery.post(ajaxurl, data, function(response) {
+		var obj = jQuery.parseJSON(response);
+		console.log(response);
+		if(obj.error){alert(obj.error);}
+		else if(obj.success){
+			alert(obj.success);
+			location.reload();
+			// jQuery(plugin).prev('.button-primary').show();
+			// jQuery(plugin).prev().prev('.external-updates-key-value').prop('disabled', true);
+			// jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').addClass('external-updates-active');
+
+
+		}else{
+			alert('error');
+		}
+	});
+}

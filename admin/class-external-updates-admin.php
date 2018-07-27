@@ -196,8 +196,39 @@ class External_Updates_Admin {
 				echo json_encode( $activate );
 			}
 
-		}
+		}elseif ( isset( $_POST['exup_action'] ) && $_POST['exup_action'] == 'activate_membership_key' ) {
 
+			$key    = isset( $_POST['exup_key'] ) ? sanitize_text_field( $_POST['exup_key'] ) : '';
+			$package = '';
+			$item_ids = isset($_POST['exup_item_ids']) ? explode(",",$_POST['exup_item_ids']) : array();
+			if(isset( $_POST['exup_domain'] ) && $_POST['exup_domain'] ){
+				$package = sanitize_text_field( $_POST['exup_domain'] );
+			}
+
+			if ( $key && $package && !empty($item_ids)) {
+
+				$activate = $this->activate_membership_licence( $package, $key, $item_ids );//activate_membership_licence( $domain, $key, $item_ids )
+
+				echo json_encode( $activate );
+			}
+
+		}elseif ( isset( $_POST['exup_action'] ) && $_POST['exup_action'] == 'deactivate_membership_key' ) {
+
+			$key    = isset( $_POST['exup_key'] ) ? sanitize_text_field( $_POST['exup_key'] ) : '';
+			$package = '';
+			$item_ids = isset($_POST['exup_item_ids']) ? explode(",",$_POST['exup_item_ids']) : array();
+			if(isset( $_POST['exup_domain'] ) && $_POST['exup_domain'] ){
+				$package = sanitize_text_field( $_POST['exup_domain'] );
+			}
+
+			if ( $key && $package && !empty($item_ids)) {
+
+				$activate = $this->deactivate_membership_licence( $package, $key, $item_ids );//activate_membership_licence( $domain, $key, $item_ids )
+
+				echo json_encode( $activate );
+			}
+
+		}
 		wp_die();
 	}
 
@@ -271,6 +302,137 @@ class External_Updates_Admin {
 			}
 
 		}
+	}
+
+	/**
+	 * Activate the plugin with the EDD install.
+	 *
+	 * @param $plugin string The plugin slug.
+	 * @param $key    string The plugin licence key.
+	 *
+	 * @return array|bool
+	 */
+	public function activate_membership_licence( $domain, $key, $item_ids ) {
+
+		$update_url = "https://".$domain;
+		$update_id  = $item_ids;
+
+		if ( ! $update_url || ! $update_id ) {
+			return false;
+		}
+
+		$error = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+
+		foreach($item_ids as $item_id){
+			// data to send in our API request
+			$api_params = array(
+				'edd_action' => 'activate_license',
+				'license'    => $key,
+				'item_id'    => $item_id, // the name or ID of our product in EDD
+				'url'        => home_url()
+			);
+
+			// Call the custom API.
+			$response = wp_remote_post( $update_url, array(
+				'timeout'   => 15,
+				'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
+				'body'      => $api_params
+			) );
+
+			// make sure the response came back okay
+			if ( is_wp_error( $response ) ) {
+				return array('error' => $response->get_error_message());
+			} else {
+
+				// decode the license data
+				$licence_data_json = wp_remote_retrieve_body( $response );
+				$licence_data      = json_decode( $licence_data_json );
+
+				if ( $licence_data->license == 'valid' ) {
+					$keys = $this->get_keys();
+					$licence_data->key = $key;
+					$keys[ $domain ]   = $licence_data;
+					$this->update_keys($keys);
+
+					return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
+
+				} elseif ( $licence_data->license == 'invalid' ) {
+					$error = array( 'error' => __( 'Licence key is invalid', 'external-updates' ) );
+				} else {
+					$error = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+				}
+
+			}
+		}
+
+		return $error;
+
+	}
+
+	/**
+	 * Deactivate the plugin with the EDD install.
+	 *
+	 * @param $plugin string The plugin slug.
+	 * @param $key    string The plugin licence key.
+	 *
+	 * @return array|bool
+	 */
+	public function deactivate_membership_licence( $domain, $key, $item_ids ) {
+
+		$update_url = "https://".$domain;
+		$update_id  = $item_ids;
+
+		if ( ! $update_url || ! $update_id ) {
+			return false;
+		}
+
+		$error = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+
+		foreach($item_ids as $item_id){
+			// data to send in our API request
+			$api_params = array(
+				'edd_action' => 'deactivate_license',
+				'license'    => $key,
+				'item_id'    => $item_id, // the name or ID of our product in EDD
+				'url'        => home_url()
+			);
+
+			// Call the custom API.
+			$response = wp_remote_post( $update_url, array(
+				'timeout'   => 15,
+				'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
+				'body'      => $api_params
+			) );
+
+			// make sure the response came back okay
+			if ( is_wp_error( $response ) ) {
+				return array('error' => $response->get_error_message());
+			} else {
+
+				// decode the license data
+				$licence_data_json = wp_remote_retrieve_body( $response );
+				$licence_data      = json_decode( $licence_data_json );
+
+				if ( $licence_data->license == 'deactivated' ) {
+					// we remove the licence no matter the response so a new one can be added
+					$keys = $this->get_keys();
+					$licence_data->key = $key;
+					unset( $keys[ $domain] );
+					$this->update_keys($keys);
+
+					return array( 'success' => __( 'Licence deactivated!', 'external-updates' ) );
+
+				} elseif ( $licence_data->license == 'invalid' ) {
+					$error = array( 'error' => __( 'Licence key is invalid', 'external-updates' ) );
+				} else {
+					$error = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+				}
+
+			}
+		}
+
+		return $error;
+
 	}
 
 	/**
@@ -583,7 +745,7 @@ class External_Updates_Admin {
 				'version'    => isset( $_data['version'] ) ? $_data['version'] : false,
 				'slug'       => $_data['slug'],
 				'url'        => home_url(),
-				'beta'       => ! empty( $data['beta'] ),
+				'beta'       => ! empty( $_data['beta'] ),
 			);
 		}else{
 			$api_params = array(
@@ -593,19 +755,25 @@ class External_Updates_Admin {
 			);
 		}
 
-
+		/**
+		 * Filter the API params before send.
+		 *
+		 * This can be used to filter things like is beta.
+		 *
+		 * @param array $api_params The array of API parameters.
+		 * @param string $_src The update url.
+		 * @since 1.1.6
+		 */
+		$api_params = apply_filters('wp_easy_updates_api_params',$api_params,$_src);
 
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
 			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
-		
-
 
 		if ( ! is_wp_error( $request ) ) {
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
-
 
 			if ( $single ) {
 				$tmp_obj = new stdClass();
@@ -613,9 +781,7 @@ class External_Updates_Admin {
 				$request = $tmp_obj;
 			}
 
-
 			$request = self::unserialize_response( $request);
-
 
 			return $request;
 		}
@@ -745,7 +911,7 @@ class External_Updates_Admin {
 				}
 
 			}
-			$_transient_data->checked[ $name ] = $update_array[ $name ]['version'];
+			$_transient_data->checked[ $name ] = isset($update_array[ $name ]['version']) ? $update_array[ $name ]['version'] : '';
 		}
 		$_transient_data->last_checked = time();
 
@@ -1053,7 +1219,7 @@ class External_Updates_Admin {
 	 * @param string $type The type of package, `plugin` or `theme`.
 	 * @return string The html to output.
 	 */
-	public function render_licence_actions($slug, $type){
+	public function render_licence_actions($slug, $type, $item_ids = array()){
 
 		$ajax_nonce = wp_create_nonce( "exup-ajax-security" );
 
@@ -1108,6 +1274,16 @@ class External_Updates_Admin {
 
 			$html .= '</div>';
 
+		}elseif($type=='membership'){
+			// activate link
+			//$html .= '<a href="javascript:void(0);" class="external-updates-licence-toggle ' . $licence_class . '" onclick="exup_enter_licence_key(this);" >' . _x( 'Licence key', 'Plugin action link label.', 'external-updates' ) . '</a>';
+
+			// add licence activation html
+			$html .= '<p>';
+			$html .= '<input ' . $key_disabled . ' type="text" value="' . $key . '" class="external-updates-key-value" placeholder="' . __( 'Enter your licence key', 'external-updates' ) . '" />';
+			$html .= '<span style="' . $deactivate_display . '" class="button-primary" onclick="exup_deactivate_membership_licence_key(this,\'' . $slug . '\',\'' . $ajax_nonce . '\',\'' . implode(",",$item_ids) . '\');">' . __( 'Deactivate', 'external-updates' ) . '</span>';
+			$html .= '<span style="' . $activate_display . '" class="button-primary" onclick="exup_activate_membership_licence_key(this,\'' . $slug . '\',\'' . $ajax_nonce . '\',\'' . implode(",",$item_ids) . '\');">' . __( 'Activate', 'external-updates' ) . '</span>';
+			$html .= '</p>';
 		}
 
 
