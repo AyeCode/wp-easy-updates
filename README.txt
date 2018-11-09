@@ -3,8 +3,8 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
-Tested up to: 4.9.9
-Stable tag: 1.1.6
+Tested up to: 5.0
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,8 +70,11 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.7 =
+If download fails we now provide a link to the package url which may contain the reason why it failed - ADDED
+
 = 1.1.6 =
-Added support for EDD software licencing beta releases via filter- ADDED
+Added support for EDD software licencing beta releases via filter - ADDED
 
 = 1.1.5 =
 UsersWP addons sending individual checks instead of one array - FIXED

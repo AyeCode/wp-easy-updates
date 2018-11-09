@@ -1013,6 +1013,9 @@ class External_Updates_Admin {
 	 */
 	public function update_errors( $false, $src, $Uthis ) {
 
+//		echo '###'.$src;
+//		print_r($Uthis);exit;
+
 		// make sure we are not adding the mesage more than once one multiple updates.
 		if ( isset($Uthis->strings['no_package']) && strpos( $Uthis->strings['no_package'], ' > ' ) !== false ) {
 			return $false;
@@ -1024,9 +1027,15 @@ class External_Updates_Admin {
 			if ( is_network_admin() ) {
 				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' '
 				                                . sprintf( __( 'A licence key is required to update, please enter it under the main site: Plugins > %s > Licence key.', 'external-updates' ), $plugin_name );
+
 			} else {
 				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' '
 				                                . sprintf( __( 'A licence key is required to update, please enter it under: Plugins > %s > Licence key.', 'external-updates' ), $plugin_name );
+			}
+
+			// if it gives a package url but fails to download then show a link to the package which will probably give a reason for the first instance only so we replace the links on the fly with JS for the rest.
+			if(!empty($src)){
+				$Uthis->strings['download_failed'] =  sprintf( __( '%s ( more info ) %s' ), "<a class='wpeu-download-failed-error' href='$src' target='_blank'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
 			}
 
 		}elseif(isset($Uthis->skin) && isset($Uthis->skin->theme_info) && $Uthis->skin->theme_info->get("Update ID")){// check if we are dealing with a theme that requires a licence key
@@ -1037,6 +1046,11 @@ class External_Updates_Admin {
 			} else {
 				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' '
 				                                . sprintf( __( 'A licence key is required to update, please enter it under: Themes > %s > Theme Details > Licence key.', 'external-updates' ), $plugin_name );
+			}
+
+			// if it gives a package url but fails to download then show a link to the package which will probably give a reason for the first instance only so we replace the links on the fly with JS for the rest.
+			if(!empty($src)){
+				$Uthis->strings['download_failed'] =  sprintf( __( '%s ( more info ) %s' ), "<a class='wpeu-download-failed-error' href='$src' target='_blank'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
 			}
 		}
 

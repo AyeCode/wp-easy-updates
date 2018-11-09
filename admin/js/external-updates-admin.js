@@ -29,6 +29,20 @@
 	 * practising this, we should strive to set a better example in our own work.
 	 */
 
+	// if we have a download failed error then try to replace the url with the correct one
+	$(function() {
+		if($('.wpeu-download-failed-error').length){
+			console.log('start');
+			$('.wpeu-download-failed-error').each(function(i, obj) {
+				console.log('it');
+				var $download_url = $(this).closest( ".error" ).prev().find('.code').text();
+				if($download_url){
+					$(this).attr("href", $download_url);
+				}
+			});
+		}
+	});
+
 
 
 })( jQuery );
