@@ -321,3 +321,146 @@ function exup_deactivate_membership_licence_key(plugin,pluginName,exupNonce,item
 		}
 	});
 }
+
+
+function wpeu_licence_popup($this,$slug,$nonce,$update_url,$item_id,$type){
+
+	$url = jQuery($this).attr("href");
+	$title = jQuery($this).data("title");
+	if(!$type){$type = 'plugin';}
+
+	jQuery('#wpeu-licence-popup .wpeu-licence-title').html($title);
+	jQuery('#wpeu-licence-popup .wpeu-licence-link').attr("href",$url);
+	$licenced = jQuery($this).data("licensing");
+	$single_licence = jQuery($this).data("licence");
+
+	if($licenced && !$single_licence){
+		$lightbox = lity('#wpeu-licence-popup');
+
+		jQuery(".wpeu-licence-popup-button").unbind('click').click(function(){
+			$licence =  jQuery(".wpeu-licence-key").val();
+			if($licenced && $licence==''){
+				alert("Please enter a key");
+			}else{
+				jQuery(".wpeu-licence-key").val('');
+				$lightbox.close();
+				if($type=='plugin'){
+					wpeu_install_plugin($this,$slug,$nonce,$update_url,$item_id,$licence);
+				}else if($type=='theme'){
+					wpeu_install_theme($this,$slug,$nonce,$update_url,$item_id,$licence);
+				}
+			}
+		});
+	}
+
+}
+
+function wpeu_install_plugin($this,$slug,$nonce,$update_url,$item_id,$licence){
+
+	var data = {
+		'action':           'install-plugin',
+		'_ajax_nonce':       $nonce,
+		'slug':              $slug,
+		'item_id':           $item_id
+	};
+
+
+	if($update_url){
+		data.update_url = "https://wpgeodirectory.com";
+	}
+
+	if($licence && $licence!='free'){
+		data.license = $licence;
+		data.wpeu_activate = 1; // activate the licence first or it won't allow download from the url.
+	}else if($licence=='free'){
+		data.free_download = '1'; // requires EDD free downloads to work
+	}
+
+	// console.log(data);return;
+
+	jQuery.ajax({
+		type: "POST",
+		url: ajaxurl,
+		data: data, // serializes the form's elements.
+		beforeSend: function()
+		{
+			jQuery($this).html('<i class="fas fa-sync fa-spin" ></i> ' + jQuery($this).data("text-installing")).attr("disabled", true);
+		},
+		success: function(data)
+		{
+			console.log(data);
+			if(data.success){
+				if(data.data.activateUrl){
+					jQuery($this).html(jQuery($this).data("text-activate")).removeAttr('target').attr('onclick','wpeu_set_button_activating(this);').attr('href',data.data.activateUrl).attr("disabled", false);
+				}else{
+					jQuery($this).html(jQuery($this).data("text-installed")).removeClass('button-primary').addClass('button-secondary');
+				}
+			}else{
+				jQuery($this).html(jQuery($this).data("text-error"));
+				var error_msg = jQuery($this).data("text-error-message");
+				if(data.data.errorMessage){
+					error_msg += " : " + data.data.errorMessage;
+				}
+				alert( error_msg );
+
+			}
+		}
+	});
+}
+
+function wpeu_install_theme($this,$slug,$nonce,$update_url,$item_id,$licence){
+
+	var data = {
+		'action':           'install-theme',
+		'_ajax_nonce':       $nonce,
+		'slug':              $slug,
+		'item_id':           $item_id
+	};
+
+
+	if($update_url){
+		data.update_url = "https://wpgeodirectory.com";
+	}
+
+	if($licence && $licence!='free'){
+		data.license = $licence;
+		data.wpeu_activate = 1; // activate the licence first or it won't allow download from the url.
+	}else if($licence=='free'){
+		data.free_download = '1'; // requires EDD free downloads to work
+	}
+
+	// console.log(data);return;
+
+	jQuery.ajax({
+		type: "POST",
+		url: ajaxurl,
+		data: data, // serializes the form's elements.
+		beforeSend: function()
+		{
+			jQuery($this).html('<i class="fas fa-sync fa-spin" ></i> ' + jQuery($this).data("text-installing")).attr("disabled", true);
+		},
+		success: function(data)
+		{
+			console.log(data);
+			if(data.success){
+				if(data.data.activateUrl){
+					jQuery($this).html(jQuery($this).data("text-activate")).removeAttr('target').attr('onclick','wpeu_set_button_activating(this);').attr('href',data.data.activateUrl).attr("disabled", false);
+				}else{
+					jQuery($this).html(jQuery($this).data("text-installed")).removeClass('button-primary').addClass('button-secondary');
+				}
+			}else{
+				jQuery($this).html(jQuery($this).data("text-error"));
+				var error_msg = jQuery($this).data("text-error-message");
+				if(data.data.errorMessage){
+					error_msg += " : " + data.data.errorMessage;
+				}
+				alert( error_msg );
+
+			}
+		}
+	});
+}
+
+function wpeu_set_button_activating($this){
+	jQuery($this).html('<i class="fas fa-sync fa-spin" ></i> ' + jQuery($this).data("text-activating")).attr("disabled", true);
+}

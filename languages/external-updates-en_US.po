@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Easy External Updates 1.1.7\n"
+"Project-Id-Version: Easy External Updates 1.1.8\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-11-09 14:07+0000\n"
-"PO-Revision-Date: 2018-11-09 14:07+0000\n"
+"POT-Creation-Date: 2019-01-16 16:54+0000\n"
+"PO-Revision-Date: 2019-01-16 16:55+0000\n"
 "Last-Translator: \n"
 "Language-Team: AyeCode Ltd <contact@ayecode.io>\n"
 "Language: en_US\n"
@@ -18,124 +18,133 @@ msgstr ""
 "X-Generator: Poedit 1.8.7.1\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: admin/class-external-updates-admin.php:296
-#: admin/class-external-updates-admin.php:357
+#: admin/class-external-updates-admin.php:301
+#: admin/class-external-updates-admin.php:362
 msgid "Licence activated!"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:299
-#: admin/class-external-updates-admin.php:360
-#: admin/class-external-updates-admin.php:426
-#: admin/class-external-updates-admin.php:519
+#: admin/class-external-updates-admin.php:304
+#: admin/class-external-updates-admin.php:365
+#: admin/class-external-updates-admin.php:431
+#: admin/class-external-updates-admin.php:524
 msgid "Licence key is invalid"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:301
-#: admin/class-external-updates-admin.php:324
-#: admin/class-external-updates-admin.php:362
-#: admin/class-external-updates-admin.php:389
-#: admin/class-external-updates-admin.php:428
-#: admin/class-external-updates-admin.php:521
+#: admin/class-external-updates-admin.php:306
+#: admin/class-external-updates-admin.php:329
+#: admin/class-external-updates-admin.php:367
+#: admin/class-external-updates-admin.php:394
+#: admin/class-external-updates-admin.php:433
+#: admin/class-external-updates-admin.php:526
 msgid "Something went wrong!"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:423
-#: admin/class-external-updates-admin.php:517
+#: admin/class-external-updates-admin.php:428
+#: admin/class-external-updates-admin.php:522
 msgid "Licence deactivated!"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:502
+#: admin/class-external-updates-admin.php:507
 msgid "Could not connect to licence server."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1026
+#: admin/class-external-updates-admin.php:1226
 msgid "Plugin Name"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1029
+#: admin/class-external-updates-admin.php:1229
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under the main site: "
 "Plugins > %s > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1033
+#: admin/class-external-updates-admin.php:1233
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under: Plugins > %s > "
 "Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1038
-#: admin/class-external-updates-admin.php:1053
+#: admin/class-external-updates-admin.php:1238
+#: admin/class-external-updates-admin.php:1253
 #, php-format
 msgid "%s ( more info ) %s"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1042
+#: admin/class-external-updates-admin.php:1242
 msgid "Theme Name"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1045
+#: admin/class-external-updates-admin.php:1245
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under the main site: "
 "Themes > %s > Theme Details > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1048
+#: admin/class-external-updates-admin.php:1248
 #, php-format
 msgid ""
 "A licence key is required to update, please enter it under: Themes > %s > "
 "Theme Details > Licence key."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1088
+#: admin/class-external-updates-admin.php:1288
 msgid ""
 "This plugin requires a valid licence key to enable automatic updates. Please "
 "enter it on the plugins page of the main site where you use the plugin."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1090
+#: admin/class-external-updates-admin.php:1290
 msgid "This plugin requires a valid licence key to enable automatic updates."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1264
+#: admin/class-external-updates-admin.php:1464
 msgid "Licence key"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1269
-#: admin/class-external-updates-admin.php:1283
-#: admin/class-external-updates-admin.php:1297
+#: admin/class-external-updates-admin.php:1469
+#: admin/class-external-updates-admin.php:1483
+#: admin/class-external-updates-admin.php:1497
 msgid "Enter your licence key"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1270
-#: admin/class-external-updates-admin.php:1284
-#: admin/class-external-updates-admin.php:1298
+#: admin/class-external-updates-admin.php:1470
+#: admin/class-external-updates-admin.php:1484
+#: admin/class-external-updates-admin.php:1498
 msgid "Deactivate"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1271
-#: admin/class-external-updates-admin.php:1285
-#: admin/class-external-updates-admin.php:1299
+#: admin/class-external-updates-admin.php:1471
+#: admin/class-external-updates-admin.php:1485
+#: admin/class-external-updates-admin.php:1499
 msgid "Activate"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1278
+#: admin/class-external-updates-admin.php:1478
 msgid "A valid licence key is required to enable automatic updates."
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1360
+#: admin/class-external-updates-admin.php:1560
 #, php-format
 msgid "IMPORTANT UPGRADE NOTICE ( %s ):"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1384
+#: admin/class-external-updates-admin.php:1584
 #, php-format
 msgid "More information about %s"
 msgstr ""
 
-#: admin/class-external-updates-admin.php:1386
+#: admin/class-external-updates-admin.php:1586
 msgid "View details"
+msgstr ""
+
+#: admin/class-external-updates-admin.php:1647
+#: admin/class-external-updates-admin.php:1655
+#: admin/class-external-updates-admin.php:1662
+#: admin/class-external-updates-admin.php:1679
+#: admin/class-external-updates-admin.php:1687
+#: admin/class-external-updates-admin.php:1694
+msgid "Install"
 msgstr ""

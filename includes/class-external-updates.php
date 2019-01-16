@@ -165,6 +165,16 @@ class External_Updates {
 		$this->loader->add_filter( 'pre_set_site_transient_update_themes', $plugin_admin, 'check_for_theme_updates' );
 		$this->loader->add_filter( 'extra_theme_headers', $plugin_admin, 'add_extra_package_headers', 10, 1 );
 		$this->loader->add_filter( 'wp_prepare_themes_for_js', $plugin_admin, 'add_theme_licence_actions', 10, 1 );
+		$this->loader->add_filter( 'themes_api', $plugin_admin, 'themes_api_filter', 10, 3 );
+
+		// EDD Query Args filter
+		$this->loader->add_filter( 'wpeu_edd_api_query_args', $plugin_admin, 'edd_api_query_args', 10, 3 );
+		
+		//upgrader_process_complete
+		$this->loader->add_action( 'upgrader_process_complete', $plugin_admin, 'upgrader_process_complete', 10, 2 );
+		
+		// add filters for EDD addon info
+		$this->loader->add_filter( 'edd_api_button_args', $plugin_admin, 'edd_api_button_args', 10, 1 );
 
 	}
 	

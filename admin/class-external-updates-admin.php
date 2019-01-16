@@ -240,7 +240,7 @@ class External_Updates_Admin {
 	 *
 	 * @return array|bool
 	 */
-	public function activate_licence( $package, $key, $type ) {
+	public function activate_licence( $package, $key, $type, $update_url = '', $update_id = '' ) {
 
 		if($type=='plugin'){
 			$packages = get_plugins();
@@ -249,14 +249,19 @@ class External_Updates_Admin {
 		}
 
 
-		if ( ! isset( $packages[ $package ] ) ) {
-			return false;
+		if($update_url && $update_id){
+
+		}else{
+			if ( ! isset( $packages[ $package ] )) {
+				return false;
+			}
+
+			$product = $packages[ $package ];
+
+			$update_url = isset( $product['Update URL'] ) ? $product['Update URL'] : '';
+			$update_id  = isset( $product['Update ID'] ) ? $product['Update ID'] : '';
 		}
 
-		$product = $packages[ $package ];
-
-		$update_url = isset( $product['Update URL'] ) ? $product['Update URL'] : '';
-		$update_id  = isset( $product['Update ID'] ) ? $product['Update ID'] : '';
 
 		if ( ! $update_url || ! $update_id ) {
 			return false;
@@ -656,6 +661,11 @@ class External_Updates_Admin {
 					'beta'    => ! empty( $package['beta'] ),
 				);
 
+				// check for membership key
+//				if(empty($update_array['license']) && isset( $keys[ $package['Update URL'] ]->key )){
+//					$update_array['license'] = $keys[ $package['Update URL'] ]->key;
+//				}
+
 
 				$update_packages[ $package['Update URL'] ][ $key ] = $update_array + $package;
 			}
@@ -772,8 +782,18 @@ class External_Updates_Admin {
 			'body'      => $api_params
 		) );
 
+
+
 		if ( ! is_wp_error( $request ) ) {
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
+
+
+
+			// check for EDD free download
+			$request = self::maybe_free_download($request);
+
+			// check for activation and no version
+			$request = self::maybe_add_version($request,$api_params);
 
 			if ( $single ) {
 				$tmp_obj = new stdClass();
@@ -788,6 +808,56 @@ class External_Updates_Admin {
 
 		return false;
 
+	}
+
+	/**
+	 * Check if we are activating a plugin and if so make sure a version number is present so not to cause a PHP notice.
+	 *
+	 * @param $response
+	 * @param $api_params
+	 *
+	 * @return mixed
+	 */
+	public function maybe_add_version($response,$api_params){
+		if(isset($_REQUEST['wpeu_activate']) && $_REQUEST['wpeu_activate'] && !empty($response) && isset($_REQUEST['item_id'])){
+			foreach ( $response as $rslug => $rplugin ) {
+				if(!isset($response->{$rslug}->version)){
+					if(!empty($api_params['beta']) && !empty($response->{$rslug}->new_version)){
+						$response->{$rslug}->version = $response->{$rslug}->new_version;
+					}elseif(isset($request->stable_version)){
+						$response->{$rslug}->version = $response->{$rslug}->stable_version;
+					}else{
+						$response->{$rslug}->version = '';
+					}
+				}
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Check if the request is for a free plugin and if so add the free download url.
+	 *
+	 * @param $response
+	 *
+	 * @return mixed
+	 */
+	public function maybe_free_download($response){
+		if(isset($_REQUEST['free_download']) && $_REQUEST['free_download'] && !empty($response) && isset($_REQUEST['item_id'])){
+			foreach ( $response as $rslug => $rplugin ) {
+				if(isset($response->{$rslug}->download_link) && $response->{$rslug}->download_link==''){
+					$free_download_url = add_query_arg( array(
+						'edd_action' => 'free_downloads_process_download',
+						'download_id' => absint($_REQUEST['item_id']),
+					), $response->{$rslug}->homepage );
+					$response->{$rslug}->package = $free_download_url;
+					$response->{$rslug}->download_link = $free_download_url;
+				}
+			}
+		}
+
+		return $response;
 	}
 
 	public function github_api_request( $_src, $_data ) {
@@ -949,12 +1019,19 @@ class External_Updates_Admin {
 			'item_id' => $update_id                              // id of this addon on GD site
 		);
 
+		// maybe activate
+		if( !empty($_REQUEST['update_url']) && !empty($_REQUEST['license']) && !empty($_REQUEST['wpeu_activate'])){
+			$activate = self::activate_licence( $_args->slug, $licence, 'plugin', $update_url, $update_id);
+		}
+
 		if ( strpos( $update_url, '://github.com/' ) !== false ) {
 			$plugins[ $_args->slug ]['slug'] = $_args->slug;
 			$api_response                    = $this->github_api_request( $update_url, $plugins[ $_args->slug ] );
 		} else {
 			$api_response = $this->api_request( 'plugin_information', $update_url, $update_array );
 		}
+
+//		print_r($api_response);exit;
 
 
 		if ( false !== $api_response ) {
@@ -996,6 +1073,129 @@ class External_Updates_Admin {
 		}
 
 		return $_data;
+	}
+
+	/**
+	 * Updates information on the "View version x.x details" page with custom data.
+	 *
+	 * @uses api_request()
+	 *
+	 * @param mixed $_data
+	 * @param string $_action
+	 * @param object $_args
+	 *
+	 * @return object $_data
+	 */
+	public function themes_api_filter( $_data, $_action = '', $_args = null ) {
+		$themes = $this->get_packages_for_update('theme');
+
+		if ( $_action != 'theme_information' || ! isset( $_args->slug ) || ( ! array_key_exists( $_args->slug,$themes ) && !isset($_REQUEST['update_url']) ) ) {
+			return $_data;
+		}
+
+
+
+		$update_url = isset($themes[ $_args->slug ]['Update URL']) ? $themes[ $_args->slug ]['Update URL'] : esc_url($_REQUEST['update_url']);
+		$update_id  = isset($themes[ $_args->slug ]['Update ID']) ? $themes[ $_args->slug ]['Update ID'] : '';
+		if(!$update_id && isset($_REQUEST['item_id'])){$update_id = absint($_REQUEST['item_id']);}
+		$licence = isset($_REQUEST['license']) ? esc_attr($_REQUEST['license']) : '';
+
+		$update_array[ $_args->slug ] = array(
+			'slug'    => $_args->slug,                           // the addon slug
+			'version' => isset($themes[ $_args->slug ]['Version']) ? $themes[ $_args->slug ]['Version'] : '',    // current version number
+			'license' => $licence,                               // license key (used get_option above to retrieve from DB)
+			'item_id' => $update_id                              // id of this addon on GD site
+		);
+
+
+
+		// maybe activate
+		if( !empty($_REQUEST['update_url']) && !empty($_REQUEST['license']) && !empty($_REQUEST['wpeu_activate'])){
+			$activate = self::activate_licence( $_args->slug, $licence, 'theme', $update_url, $update_id);
+		}
+
+
+		if ( strpos( $update_url, '://github.com/' ) !== false ) {
+			$themes[ $_args->slug ]['slug'] = $_args->slug;
+			$api_response                    = $this->github_api_request( $update_url, $themes[ $_args->slug ] );
+		} else {
+			$api_response = $this->api_request( 'theme_information', $update_url, $update_array );
+		}
+
+//		print_r($api_response);exit;
+
+
+		if ( false !== $api_response ) {
+			$_data = reset( $api_response );
+		}
+
+		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
+		if ( isset( $_data->sections ) && ! is_array( $_data->sections ) ) {
+			$new_sections = array();
+			foreach ( $_data->sections as $key => $key ) {
+				$new_sections[ $key ] = $key;
+			}
+
+			$_data->sections = $new_sections;
+		}
+
+		// strip shortcodes from description
+		if(isset($_data->sections['description']) && $_data->sections['description']){
+			$_data->sections['description'] = strip_shortcodes($_data->sections['description']);
+		}
+
+		// add licence input
+		//$_data->sections['licence key'] = '12345'.print_r($this->get_keys(),true); // @todo this would be a nice section to add
+
+
+		if(isset($_data->banners)){
+			$_data->banners = maybe_unserialize( $_data->banners );
+		}
+
+		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
+		if ( isset( $_data->banners ) && ! is_array( $_data->banners ) ) {
+			$new_banners = array();
+
+			foreach ( $_data->banners as $key => $key ) {
+				$new_banners[ $key ] = $key;
+			}
+
+			$_data->banners = $new_banners;
+		}
+
+		return $_data;
+	}
+
+
+	/**
+	 * If we just installed a new plugin from licence key we need to update the licence [key] name.
+	 * 
+	 * @param $upgrader_object
+	 * @param $options
+	 */
+	public function upgrader_process_complete($upgrader_object, $options){
+
+			if(
+				isset($options['type']) && $options['type'] == 'plugin'
+			&& isset($options['action']) && $options['action'] == 'install'
+			&& !empty($_REQUEST['slug']) && !empty($_REQUEST['update_url']) && !empty($_REQUEST['license']) && !empty($_REQUEST['wpeu_activate'])
+			&& isset($upgrader_object->result['destination_name'])
+			&& $upgrader_object->result['destination_name']
+			){
+
+				$plugin_root = $upgrader_object->result['destination_name'];
+				$slug = esc_attr($_REQUEST['slug']);
+				$packages = get_plugins();
+				$keys = self::get_keys();
+
+				foreach($packages as $key => $pacakge){
+					if(strpos($key, $plugin_root."/") === 0 && isset($keys[$slug])){
+						$keys[$key] = $keys[$slug];
+						unset($keys[$slug]);
+						self::update_keys($keys);
+					}
+				}
+		}
 	}
 
 	/**
@@ -1074,7 +1274,7 @@ class External_Updates_Admin {
 		$keys = $this->get_keys();
 
 
-		if( isset($plugin_data['Update ID']) && $plugin_data['Update ID'] ){
+		if( isset($plugin_data['Update ID']) && $plugin_data['Update ID'] && isset($plugin_data['Update URL']) && strpos($plugin_data['Update URL'], 'https://github.com/') !== 0){
 
 			if( !isset($keys[$plugin_file]) || $keys[$plugin_file]->key=='' ){
 
@@ -1187,7 +1387,7 @@ class External_Updates_Admin {
 	 */
 	public function render_plugin_action_links( $actions, $plugin_file, $plugin_data, $context ) {
 
-		if ( isset( $plugin_data['Update ID'] ) && $plugin_data['Update ID'] != '' ) {
+		if ( isset( $plugin_data['Update ID'] ) && $plugin_data['Update ID'] != '' && isset($plugin_data['Update URL']) && strpos($plugin_data['Update URL'], 'https://github.com/') !== 0) {
 
 			$actions[] = $this->render_licence_actions($plugin_file, 'plugin');
 
@@ -1389,6 +1589,121 @@ class External_Updates_Admin {
 		return $plugin_meta;
 	}
 
+	/**
+	 * Add a membership key if it exists.
+	 *
+	 * @param $query_args
+	 * @param $api_url
+	 * @param $section_id
+	 *
+	 * @return mixed
+	 */
+	public function edd_api_query_args($query_args,$api_url,$section_id){
 
+		$url_parts = parse_url($api_url);
+		if(isset($url_parts['host'])){
+			$host = $url_parts['host'];
+			$keys = $this->get_keys();
+			if(isset($keys[$host])){
+				$query_args['license'] = $keys[$host]->key;
+			}
+		}
+		
+		return $query_args;
+	}
+
+
+	public function edd_api_button_args($button_args){
+
+		
+
+		//if()
+
+//		$button_args = array(
+//			'type' => $current_tab,
+//			'button_text' => __('Free','geodirectory'),
+//			'price_text' => __('Free','geodirectory'),
+//			'link' => isset($addon->info->link) ? $addon->info->link : '', // link to product
+//			'url' => isset($addon->info->link) ? $addon->info->link : '', // button url
+//			'class' => 'button-primary',
+//			'install_status' => 'get',
+//			'installed' => false,
+//			'price' => '',
+//			'licensing' => isset($addon->licensing->enabled) && $addon->licensing->enabled ? true : false,
+//			'license' => isset($addon->licensing->license) && $addon->licensing->license ? $addon->licensing->license : '',
+//			'onclick' => '',
+//			'slug' => isset($addon->info->slug) ? $addon->info->slug : '',
+//			'active' => false,
+//			'file' => ''
+//		);
+
+		if(isset($button_args['type']) && $button_args['type']=='addons'){
+
+			// if not installed then change the button text to install
+			if(empty($button_args['installed']) && !empty($button_args['update_url'])){
+
+				// free
+				if($button_args['licensing']===false || (isset($button_args['price']) && $button_args['price']=='0.00')){
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$licence = 'free';
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","'.$licence.'"); return false;';
+				}elseif($button_args['licensing'] && empty($button_args['license'])){ // needs licence
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","plugin"); return false;';
+				}elseif($button_args['licensing'] && $button_args['license']){ // has licence
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$licence = isset($button_args['license']) ? esc_attr($button_args['license']) : 'license'; //@todo will this always pass a exc_attr() filter?
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","'.$licence.'"); return false;';
+				}
+			}
+
+		}if(isset($button_args['type']) && $button_args['type']=='themes'){
+
+			// if not installed then change the button text to install
+			if(empty($button_args['installed']) && !empty($button_args['update_url'])){
+
+				// free
+				if($button_args['licensing']===false || (isset($button_args['price']) && $button_args['price']=='0.00') && !empty($button_args['update_url'])){
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$licence = 'free';
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_install_theme(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","'.$licence.'"); return false;';
+				}elseif($button_args['licensing'] && empty($button_args['license'])){ // needs licence
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","theme"); return false;';
+				}elseif($button_args['licensing'] && $button_args['license']){ // has licence
+					$button_args['button_text'] = __('Install');
+					$slug = isset($button_args['slug']) ? esc_attr($button_args['slug']) : '';
+					$nonce = wp_create_nonce( 'updates' );
+					$item_id = isset($button_args['id']) ? absint($button_args['id']) : '';
+					$licence = isset($button_args['license']) ? esc_attr($button_args['license']) : 'license'; //@todo will this always pass a exc_attr() filter?
+					$update_url = isset($button_args['update_url']) ? esc_url_raw($button_args['update_url']) : '';
+					$button_args['onclick'] = 'wpeu_install_theme(this,"'.$slug.'","'.$nonce.'","'.$update_url.'","'.$item_id.'","'.$licence.'"); return false;';
+				}
+			}
+
+		}
+
+		return $button_args;
+	}
 
 }
