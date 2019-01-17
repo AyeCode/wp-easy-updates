@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
 Tested up to: 5.0
-Stable tag: 1.1.8
+Stable tag: 1.1.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,7 +70,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 1.1.8 =
+= 1.1.9 =
 Added function for installing plugins and themes from a licence key - ADDED
 Added functions for using membership key to not require sub keys - ADDED
 
