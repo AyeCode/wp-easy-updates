@@ -14,15 +14,16 @@
  *
  * @wordpress-plugin
  * Plugin Name:       WP Easy Updates
- * Plugin URI:        http://ayecode.io/
+ * Plugin URI:        https://wpeasyupdates.com/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.0.1
+ * Version:           1.1.9
  * Author:            AyeCode Ltd
  * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       external-updates
  * Domain Path:       /languages
+ * Update URL:        https://github.com/AyeCode/wp-easy-updates/
  */
 
 // If this file is called directly, abort.
@@ -30,8 +31,16 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+// Define the version number
+define('WP_EASY_UPDATES_VERSION', '1.1.9');
+
 // Define a constant that can be checked against for easy checking of activation status.
 define('WP_EASY_UPDATES_ACTIVE', true);
+
+// Define if sslverify should be used
+if(!defined('WP_EASY_UPDATES_SSL_VERIFY')){
+	define('WP_EASY_UPDATES_SSL_VERIFY', true);
+}
 
 /**
  * The code that runs during plugin activation.
@@ -76,4 +85,3 @@ function run_external_updates() {
 
 }
 run_external_updates();
-

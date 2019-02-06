@@ -69,7 +69,7 @@ class External_Updates {
 	public function __construct() {
 
 		$this->plugin_name = 'external-updates';
-		$this->version = '1.0.0';
+		$this->version = WP_EASY_UPDATES_VERSION;
 
 		$this->load_dependencies();
 		$this->set_locale();
@@ -150,12 +150,31 @@ class External_Updates {
 		$this->loader->add_action( 'wp_ajax_exup_ajax_handler', $plugin_admin, 'ajax_handler' );
 
 
-		$this->loader->add_filter( 'pre_set_site_transient_update_plugins', $plugin_admin, 'check_for_updates' );
+		$this->loader->add_filter( 'pre_set_site_transient_update_plugins', $plugin_admin, 'check_for_plugin_updates' );
 		$this->loader->add_filter( 'plugins_api', $plugin_admin, 'plugins_api_filter', 10, 3 );
 		$this->loader->add_filter( 'upgrader_pre_download', $plugin_admin, 'update_errors', 10, 3 );
 		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_requires_licence', 10, 3 );
-		$this->loader->add_filter( 'extra_plugin_headers', $plugin_admin, 'add_extra_plugin_headers', 10, 1 );
+		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_upgrade_notice', 10, 3 );
+		$this->loader->add_filter( 'extra_plugin_headers', $plugin_admin, 'add_extra_package_headers', 10, 1 );
+		$this->loader->add_filter( 'upgrader_source_selection', $plugin_admin, 'fix_source_destination', 10, 4 );
 
+		// Set the more info plugin details
+		$this->loader->add_filter( 'plugin_row_meta', $plugin_admin, 'plugin_row_meta', 10, 4 );
+		
+		// Theme stuff
+		$this->loader->add_filter( 'pre_set_site_transient_update_themes', $plugin_admin, 'check_for_theme_updates' );
+		$this->loader->add_filter( 'extra_theme_headers', $plugin_admin, 'add_extra_package_headers', 10, 1 );
+		$this->loader->add_filter( 'wp_prepare_themes_for_js', $plugin_admin, 'add_theme_licence_actions', 10, 1 );
+		$this->loader->add_filter( 'themes_api', $plugin_admin, 'themes_api_filter', 10, 3 );
+
+		// EDD Query Args filter
+		$this->loader->add_filter( 'wpeu_edd_api_query_args', $plugin_admin, 'edd_api_query_args', 10, 3 );
+		
+		//upgrader_process_complete
+		$this->loader->add_action( 'upgrader_process_complete', $plugin_admin, 'upgrader_process_complete', 10, 2 );
+		
+		// add filters for EDD addon info
+		$this->loader->add_filter( 'edd_api_button_args', $plugin_admin, 'edd_api_button_args', 10, 1 );
 
 	}
 	

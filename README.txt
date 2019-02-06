@@ -3,37 +3,36 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
-Tested up to: 4.7
-Stable tag: 1.0.1
+Tested up to: 5.0
+Stable tag: 1.1.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Update URL: https://github.com/AyeCode/external-updates
 
 Update plugins provided by EDD software licencing or via github with ease.
 
 == Description ==
 
-This plugin will let people update any plugins that are provided through Easy Digital Downloads (EDD) or via github so long as the developer has added 1-2 lines to their plugin.
+This plugin will let people update any plugins or themes that are provided through Easy Digital Downloads (EDD) or via github so long as the developer has added 1-2 lines to their plugin/theme.
 
 If you are running a multisite network then this plugin should be network activated.
 
 = For Developers =
 
-To make your plugin compatible all you have to do is add 1-2 lines to your plugins main PHP file DocBlock.
+To make your plugin compatible all you have to do is add 1-2 lines to your plugins main PHP file DocBlock or your theme style.css.
 
 EDD Software Licencing:
-To make your plugin compatible with EDD Software Licencing just add the URL of your website and the product id such as
+To make your plugin/theme compatible with EDD Software Licencing just add the URL of your website and the product id such as
 `Update URL: https://wpgeodirectory/`
 and
 `Update ID: 54321`
 The Update ID is the post ID of the product on your site.
 
 GitHub:
-To make your plugin compatible with GitHub you just have to add URL of the repo to your plugins main PHP file DocBlock.
+To make your plugin/theme compatible with GitHub you just have to add URL of the repo to your plugins main PHP file DocBlock.
 `Update URL: https://github.com/AyeCode/test-product/`
 The system will check for Releases and check the release tag as the version number to compare to.
 
-At the moment this plugin will run a check for each plugin update, when EDD SL v3.6 is release we will be able to send the request as and array so if you have 20 plugins from the same vendor, your site will only send one request instead of 20.
+At the moment this plugin will run a check for each plugin/theme update, when EDD SL v3.6 is release we will be able to send the request as and array so if you have 20 plugins from the same vendor, your site will only send one request instead of 20.
 
 == Installation ==
 
@@ -71,6 +70,41 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 1.0.0 =
+= 1.1.9 =
+Added function for installing plugins and themes from a licence key - ADDED
+Added functions for using membership key to not require sub keys - ADDED
+
+= 1.1.7 =
+If download fails we now provide a link to the package url which may contain the reason why it failed - ADDED
+
+= 1.1.6 =
+Added support for EDD software licencing beta releases via filter - ADDED
+
+= 1.1.5 =
+UsersWP addons sending individual checks instead of one array - FIXED
+Themes that don't require a licence still show a licence input - FIXED
+
+= 1.1.4 =
+GitHub updates can sometimes change the plugin folder name - FIXED
+
+= 1.1.3 =
+Banner warning not defined if updating from github - FIXED
+Echo error when activation fails to provide more reason - CHANGED
+Check added to $_transient_data to make sure it is an object - CHANGED
+Changelog from github has no line breaks - FIXED
+
+= 1.1.2 =
+If deactivating licence fails the licence is not removed - FIXED
+Added ability to show Upgrade Notice messages - ADDED
+
+= 1.1.1 =
+Sometimes on update/install theme info is not defined and causes it to freeze - FIXED
+
+= 1.1.0
+Theme update support added for both github and EDD - ADDED
+Updates from github can change the folder name of plugins - FIXED
+Theme licences can be added via Themes > Theme Details page - ADDED
+
+= 1.0.4 =
 
 Initial release
