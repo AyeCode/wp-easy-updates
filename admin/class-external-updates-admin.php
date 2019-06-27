@@ -766,6 +766,25 @@ class External_Updates_Admin {
 		}
 
 		/**
+		 * Force beta param for GeoDirectory on network as there is no setting if GD is not active.
+		 * @todo this can be removed when GD v1 updates are removed.
+		 */
+		if ( is_network_admin() && strpos( $_src, 'wpgeodirectory.com' ) !== false ) {
+
+			// check if we are dealing with GDv2+
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . "/geodirectory/geodirectory.php" );
+			if(isset($plugin_data['Version']) && version_compare($plugin_data['Version'],"2.0.0",'>')){
+				if ( ! empty( $api_params['update_array'] ) ) {
+					foreach ( $api_params['update_array'] as $key => $val ) {
+						$api_params['update_array'][ $key ]['beta'] = true;
+					}
+				}
+				$api_params['beta'] = true;
+			}
+
+		}
+
+		/**
 		 * Filter the API params before send.
 		 *
 		 * This can be used to filter things like is beta.
@@ -775,6 +794,7 @@ class External_Updates_Admin {
 		 * @since 1.1.6
 		 */
 		$api_params = apply_filters('wp_easy_updates_api_params',$api_params,$_src);
+
 
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
@@ -824,7 +844,7 @@ class External_Updates_Admin {
 				if(!isset($response->{$rslug}->version)){
 					if(!empty($api_params['beta']) && !empty($response->{$rslug}->new_version)){
 						$response->{$rslug}->version = $response->{$rslug}->new_version;
-					}elseif(isset($request->stable_version)){
+					}elseif(isset($response->{$rslug}->stable_version)){
 						$response->{$rslug}->version = $response->{$rslug}->stable_version;
 					}else{
 						$response->{$rslug}->version = '';
