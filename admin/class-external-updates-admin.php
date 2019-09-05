@@ -59,6 +59,13 @@ class External_Updates_Admin {
 	private $has_theme_check_run;
 
 	/**
+	 * Set if we are inside the upgrader class.
+	 *
+	 * @var bool
+	 */
+	private static $_upgrade = FALSE;
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @since    1.0.0
@@ -1233,8 +1240,7 @@ class External_Updates_Admin {
 	 */
 	public function update_errors( $false, $src, $Uthis ) {
 
-//		echo '###'.$src;
-//		print_r($Uthis);exit;
+		self::$_upgrade = TRUE; // set doing upgrade
 
 		// make sure we are not adding the mesage more than once one multiple updates.
 		if ( isset($Uthis->strings['no_package']) && strpos( $Uthis->strings['no_package'], ' > ' ) !== false ) {
@@ -1724,6 +1730,27 @@ class External_Updates_Admin {
 		}
 
 		return $button_args;
+	}
+
+	/**
+	 * Callback for this 'wp_unique_filename' filter that adjusts the filename created in wp_tempnam()
+	 * @param string $filename The filename being created
+	 * @param string $ext The file's extension
+	 * @param string $dir The file's directory
+	 * @param callback $unique_filename_callback The unique filename callback reference
+	 * @return string The file name to use
+	 */
+	public static function filter_unique_filename( $filename, $ext, $dir, $unique_filename_callback )
+	{
+		if ( self::$_upgrade && ( strlen( $filename ) > 120 && '.tmp' === $ext ) ) {
+			$file = tempnam( $dir, 'wpeu' );		// creates a new, guaranteed unique filename with 'wpeu' prefix
+			@unlink( $file );					// remove the file, since we're changing the name by adding an extension
+			$file .= $ext;						// add the extension to the filename being returned
+			// the file name returned will not exist. this is the expected behavior in wp_tempnam()
+			return basename( $file );			// return just the filename since wp_tempnam() adds the directory
+		}
+
+		return $filename;						// the upgrade process is not happening, just return the original filename value
 	}
 
 }
