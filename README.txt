@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
 Tested up to: 5.2
-Stable tag: 1.1.10
+Stable tag: 1.1.11
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.11 =
+* Windows servers can throw errors because of EDD filename lengths - FIXED
 
 = 1.1.10 =
 * GeoDirectory v2+ addons not showing updates on WP Network (multisite) - FIXED
