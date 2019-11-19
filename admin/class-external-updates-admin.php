@@ -1605,8 +1605,8 @@ class External_Updates_Admin {
 			$plugin_name = $plugin_data['Name'];
 
 			$plugin_meta[] = sprintf( '<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
-				esc_url( network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . $plugin_file .
-				                            '&TB_iframe=true&width=600&height=550&update_url='.$plugin_data['Update URL'].'&item_id='.$plugin_data['Update ID'] ) ),
+				esc_url_raw( network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . $plugin_file .
+				                            '&width=600&height=550&update_url='.$plugin_data['Update URL'].'&item_id='.$plugin_data['Update ID'].'&TB_iframe=true' ) ),
 				esc_attr( sprintf( __( 'More information about %s' ), $plugin_name ) ),
 				esc_attr( $plugin_name ),
 				__( 'View details' )
