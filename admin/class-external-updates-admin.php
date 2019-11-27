@@ -326,6 +326,22 @@ class External_Updates_Admin {
 	 */
 	public function activate_membership_licence( $domain, $key, $item_ids ) {
 
+		// @todo remove this once keys are in core plugins
+		##########################################################
+		######### < Temp Fix for Lifetime membership keys ########
+		##########################################################
+		if( $domain == 'wpgeodirectory.com' && !empty($item_ids) ){
+			$item_ids[] = '807546';
+		}elseif($domain == 'userswp.io' && !empty($item_ids) ){
+			$item_ids[] = '20570';
+		}elseif($domain == 'wpinvoicing.com' && !empty($item_ids) ){
+			$item_ids[] = '12351';
+		}
+		##########################################################
+		######### Temp Fix for Lifetime membership keys /> #######
+		##########################################################
+		
+		
 		$update_url = "https://".$domain;
 		$update_id  = $item_ids;
 
@@ -391,6 +407,21 @@ class External_Updates_Admin {
 	 */
 	public function deactivate_membership_licence( $domain, $key, $item_ids ) {
 
+		// @todo remove this once keys are in core plugins
+		##########################################################
+		######### < Temp Fix for Lifetime membership keys ########
+		##########################################################
+		if( $domain == 'wpgeodirectory.com' && !empty($item_ids) ){
+			$item_ids[] = '807546';
+		}elseif($domain == 'userswp.io' && !empty($item_ids) ){
+			$item_ids[] = '20570';
+		}elseif($domain == 'wpinvoicing.com' && !empty($item_ids) ){
+			$item_ids[] = '12351';
+		}
+		##########################################################
+		######### Temp Fix for Lifetime membership keys /> #######
+		##########################################################
+		
 		$update_url = "https://".$domain;
 		$update_id  = $item_ids;
 

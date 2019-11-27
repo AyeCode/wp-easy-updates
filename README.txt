@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
 Tested up to: 5.3
-Stable tag: 1.1.12
+Stable tag: 1.1.13
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.13 =
+* Lifetime membership keys not activating - FIXED
 
 = 1.1.12 =
 * Licence lightbox changed to standard WordPress TickBox - CHANGED
