@@ -307,15 +307,20 @@ function exup_deactivate_membership_licence_key(plugin,pluginName,exupNonce,item
 	jQuery.post(ajaxurl, data, function(response) {
 		var obj = jQuery.parseJSON(response);
 		console.log(response);
-		if(obj.error){alert(obj.error);}
+		if(obj.error){
+			alert(obj.error);
+			jQuery(plugin).hide();
+			jQuery(plugin).prev('.external-updates-key-value').val('');
+			jQuery(plugin).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(plugin).next('.button-primary').show();
+			//membership-content
+		}
 		else if(obj.success){
 			alert(obj.success);
 			location.reload();
 			// jQuery(plugin).prev('.button-primary').show();
 			// jQuery(plugin).prev().prev('.external-updates-key-value').prop('disabled', true);
 			// jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').addClass('external-updates-active');
-
-
 		}else{
 			alert('error');
 		}
