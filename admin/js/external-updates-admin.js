@@ -307,15 +307,20 @@ function exup_deactivate_membership_licence_key(plugin,pluginName,exupNonce,item
 	jQuery.post(ajaxurl, data, function(response) {
 		var obj = jQuery.parseJSON(response);
 		console.log(response);
-		if(obj.error){alert(obj.error);}
+		if(obj.error){
+			alert(obj.error);
+			jQuery(plugin).hide();
+			jQuery(plugin).prev('.external-updates-key-value').val('');
+			jQuery(plugin).prev('.external-updates-key-value').prop('disabled', false);
+			jQuery(plugin).next('.button-primary').show();
+			//membership-content
+		}
 		else if(obj.success){
 			alert(obj.success);
 			location.reload();
 			// jQuery(plugin).prev('.button-primary').show();
 			// jQuery(plugin).prev().prev('.external-updates-key-value').prop('disabled', true);
 			// jQuery(plugin).parent().parent().prev('.external-updates-licence-toggle').addClass('external-updates-active');
-
-
 		}else{
 			alert('error');
 		}
@@ -335,15 +340,16 @@ function wpeu_licence_popup($this,$slug,$nonce,$update_url,$item_id,$type){
 	$single_licence = jQuery($this).data("licence");
 
 	if($licenced && !$single_licence){
-		$lightbox = lity('#wpeu-licence-popup');
-
+		jQuery('#wpeu-licence-popup .wpeu-licence-title').html(''); // not needed with thickbox
+		tb_show($title, "#TB_inline?&width=300&height=80&inlineId=wpeu-licence-popup");
+		
 		jQuery(".wpeu-licence-popup-button").unbind('click').click(function(){
 			$licence =  jQuery(".wpeu-licence-key").val();
 			if($licenced && $licence==''){
 				alert("Please enter a key");
 			}else{
 				jQuery(".wpeu-licence-key").val('');
-				$lightbox.close();
+				tb_remove();
 				if($type=='plugin'){
 					wpeu_install_plugin($this,$slug,$nonce,$update_url,$item_id,$licence);
 				}else if($type=='theme'){
@@ -366,7 +372,7 @@ function wpeu_install_plugin($this,$slug,$nonce,$update_url,$item_id,$licence){
 
 
 	if($update_url){
-		data.update_url = "https://wpgeodirectory.com";
+		data.update_url = $update_url;
 	}
 
 	if($licence && $licence!='free'){
@@ -419,7 +425,7 @@ function wpeu_install_theme($this,$slug,$nonce,$update_url,$item_id,$licence){
 
 
 	if($update_url){
-		data.update_url = "https://wpgeodirectory.com";
+		data.update_url = $update_url;
 	}
 
 	if($licence && $licence!='free'){

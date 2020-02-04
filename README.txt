@@ -3,8 +3,8 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
-Tested up to: 5.2
-Stable tag: 1.1.11
+Tested up to: 5.3
+Stable tag: 1.1.14
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,7 +39,7 @@ At the moment this plugin will run a check for each plugin/theme update, when ED
 = Minimum Requirements =
 
 * WordPress 3.1 or greater
-* PHP version 5.2.4 or greater
+* PHP version 5.6 or greater
 
 = Automatic installation =
 
@@ -69,6 +69,16 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.14 =
+* Expired Membership keys cant be deactivated - FIXED
+
+= 1.1.13 =
+* Lifetime membership keys not activating - FIXED
+
+= 1.1.12 =
+* Licence lightbox changed to standard WordPress TickBox - CHANGED
+* In some cases the custom url param is ignored which breaks the `more info` functionality - FIXED
 
 = 1.1.11 =
 * Windows servers can throw errors because of EDD filename lengths - FIXED
