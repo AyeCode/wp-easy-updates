@@ -487,7 +487,7 @@ class External_Updates_Admin {
 	public function update_keys($keys){
 
 		$network_keys = $this->get_keys(true);
-		$network_keys = $network_keys + $keys;
+		$network_keys = array_merge($network_keys , $keys );
 		update_site_option( 'exup_keys', $network_keys  ); // update network option
 
 		update_option( 'exup_keys', $keys ); // update single site option

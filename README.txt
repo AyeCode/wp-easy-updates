@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
 Tested up to: 5.3
-Stable tag: 1.1.14
+Stable tag: 1.1.15
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.15 =
+* Licence keys on network may not update correctly if expired licence is currently installed - FIXED
 
 = 1.1.14 =
 * Expired Membership keys cant be deactivated - FIXED

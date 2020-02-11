@@ -141,6 +141,9 @@ class External_Updates_Activator {
 
 				}
 
+				delete_option("geodir_licence_keys");
+				update_option( 'geodir_licence_keys_backup', $licence_keys);
+
 			}
 
 		}
