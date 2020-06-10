@@ -1035,6 +1035,9 @@ class External_Updates_Admin {
 				if($type =='theme'){
 					$_transient_data->response[ $name ] = (array) $package_info;
 				}else{
+					// for some obscure reason, sections can make the update check run on every page load
+					if(isset($package_info->sections)){unset($package_info->sections);}
+
 					$_transient_data->response[ $name ] = $package_info;
 				}
 

@@ -3,8 +3,8 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 3.1
-Tested up to: 5.3
-Stable tag: 1.1.15
+Tested up to: 5.4
+Stable tag: 1.1.16
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.16 =
+* Sections unset from api return as some content can cause the update check to run again - FIXED
 
 = 1.1.15 =
 * Licence keys on network may not update correctly if expired licence is currently installed - FIXED
