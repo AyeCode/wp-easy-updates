@@ -487,7 +487,7 @@ class External_Updates_Admin {
 	public function update_keys($keys){
 
 		$network_keys = $this->get_keys(true);
-		$network_keys = $network_keys + $keys;
+		$network_keys = array_merge($network_keys , $keys );
 		update_site_option( 'exup_keys', $network_keys  ); // update network option
 
 		update_option( 'exup_keys', $keys ); // update single site option
@@ -1035,6 +1035,9 @@ class External_Updates_Admin {
 				if($type =='theme'){
 					$_transient_data->response[ $name ] = (array) $package_info;
 				}else{
+					// for some obscure reason, sections can make the update check run on every page load
+					if(isset($package_info->sections)){unset($package_info->sections);}
+
 					$_transient_data->response[ $name ] = $package_info;
 				}
 
