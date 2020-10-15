@@ -1042,6 +1042,12 @@ class External_Updates_Admin {
 				}
 
 			}
+
+			// if plugin param missing then add it.
+			if( $type == 'plugin' && empty( $package_info->plugin ) ){
+				$package_info->plugin = $name;
+			}
+
 			$_transient_data->checked[ $name ] = isset($update_array[ $name ]['version']) ? $update_array[ $name ]['version'] : '';
 		}
 		$_transient_data->last_checked = time();
