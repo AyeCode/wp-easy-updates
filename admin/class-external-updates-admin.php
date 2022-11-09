@@ -805,22 +805,22 @@ class External_Updates_Admin {
 
 		/**
 		 * Force beta param for GeoDirectory on network as there is no setting if GD is not active.
-		 * @todo this can be removed when GD v1 updates are removed.
+		 * @done this can be removed when GD v1 updates are removed.
 		 */
-		if ( is_network_admin() && strpos( $_src, 'wpgeodirectory.com' ) !== false ) {
-
-			// check if we are dealing with GDv2+
-			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . "/geodirectory/geodirectory.php" );
-			if(isset($plugin_data['Version']) && version_compare($plugin_data['Version'],"2.0.0",'>')){
-				if ( ! empty( $api_params['update_array'] ) ) {
-					foreach ( $api_params['update_array'] as $key => $val ) {
-						$api_params['update_array'][ $key ]['beta'] = true;
-					}
-				}
-				$api_params['beta'] = true;
-			}
-
-		}
+//		if ( is_network_admin() && strpos( $_src, 'wpgeodirectory.com' ) !== false ) {
+//
+//			// check if we are dealing with GDv2+
+//			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . "/geodirectory/geodirectory.php" );
+//			if(isset($plugin_data['Version']) && version_compare($plugin_data['Version'],"2.0.0",'>')){
+//				if ( ! empty( $api_params['update_array'] ) ) {
+//					foreach ( $api_params['update_array'] as $key => $val ) {
+//						$api_params['update_array'][ $key ]['beta'] = true;
+//					}
+//				}
+//				$api_params['beta'] = true;
+//			}
+//
+//		}
 
 		/**
 		 * Filter the API params before send.
@@ -1304,7 +1304,7 @@ class External_Updates_Admin {
 				$Uthis->strings['download_failed'] =  sprintf( __( '%s ( more info ) %s' ), "<a class='wpeu-download-failed-error' href='$src' target='_blank'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
 			}
 
-		}elseif(isset($Uthis->skin) && isset($Uthis->skin->theme_info) && $Uthis->skin->theme_info->get("Update ID")){// check if we are dealing with a theme that requires a licence key
+		}elseif(isset($Uthis->skin) && !empty($Uthis->skin->theme_info) && $Uthis->skin->theme_info->get("Update ID")){// check if we are dealing with a theme that requires a licence key
 			$plugin_name = ( $Uthis->skin->theme_info->get("Name") ) ? $Uthis->skin->theme_info->get("Name") : __( 'Theme Name', 'external-updates' );
 			if ( is_network_admin() ) {
 				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' '

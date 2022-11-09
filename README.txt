@@ -2,9 +2,9 @@
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
-Requires at least: 3.1
-Tested up to: 5.5
-Stable tag: 1.1.18
+Requires at least: 5.2
+Tested up to: 6.1
+Stable tag: 1.1.19
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.19 =
+* Change in WP core can cause plugin and theme updates to fail - FIXED
 
 = 1.1.18 =
 * Plugins transient missing plugin argument on network install plugins screen - FIXED
