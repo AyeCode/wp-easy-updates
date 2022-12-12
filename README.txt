@@ -70,6 +70,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.20 =
+* Fix PHP error during plugin installation from Extensions section - FIXED
+
 = 1.1.19 =
 * Change in WP core can cause plugin and theme updates to fail - FIXED
 
