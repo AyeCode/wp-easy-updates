@@ -876,16 +876,28 @@ class External_Updates_Admin {
 	 *
 	 * @return mixed
 	 */
-	public function maybe_add_version($response,$api_params){
-		if(isset($_REQUEST['wpeu_activate']) && $_REQUEST['wpeu_activate'] && !empty($response) && isset($_REQUEST['item_id'])){
-			foreach ( $response as $rslug => $rplugin ) {
-				if(!isset($response->{$rslug}->version)){
-					if(!empty($api_params['beta']) && !empty($response->{$rslug}->new_version)){
-						$response->{$rslug}->version = $response->{$rslug}->new_version;
-					}elseif(isset($response->{$rslug}->stable_version)){
-						$response->{$rslug}->version = $response->{$rslug}->stable_version;
-					}else{
-						$response->{$rslug}->version = '';
+	public function maybe_add_version( $response, $api_params ) {
+		if ( ! empty( $_REQUEST['wpeu_activate'] ) && isset( $_REQUEST['item_id'] ) && ! empty( $response ) && is_object( $response ) ) {
+			if ( isset( $response->name ) && isset( $response->slug ) ) {
+				if ( ! isset( $response->version ) ) {
+					if ( ! empty( $api_params['beta'] ) && ! empty( $response->new_version ) ) {
+						$response->version = $response->new_version;
+					} else if ( isset( $response->stable_version ) ) {
+						$response->version = $response->stable_version;
+					} else {
+						$response->version = '';
+					}
+				}
+			} else {
+				foreach ( $response as $rslug => $rplugin ) {
+					if ( isset( $response->{$rslug} ) && is_object( $response->{$rslug} ) && isset( $response->{$rslug}->name ) && isset( $response->{$rslug}->slug ) && ! isset( $response->{$rslug}->version ) ) {
+						if ( ! empty( $api_params['beta'] ) && ! empty( $response->{$rslug}->new_version ) ) {
+							$response->{$rslug}->version = $response->{$rslug}->new_version;
+						} else if ( isset( $response->{$rslug}->stable_version ) ) {
+							$response->{$rslug}->version = $response->{$rslug}->stable_version;
+						} else {
+							$response->{$rslug}->version = '';
+						}
 					}
 				}
 			}
