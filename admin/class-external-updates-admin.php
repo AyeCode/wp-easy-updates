@@ -779,10 +779,8 @@ class External_Updates_Admin {
 			return $this->github_api_request( $_src, $_data );
 		}
 
-
 		$update_array = $_data;
 		$single       = false;
-
 
 		if ( isset( $_data['slug'] ) ) { // its  a single request
 			$single                = true;
@@ -833,19 +831,14 @@ class External_Updates_Admin {
 		 */
 		$api_params = apply_filters('wp_easy_updates_api_params',$api_params,$_src);
 
-
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
 			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
 
-
-
 		if ( ! is_wp_error( $request ) ) {
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
-
-
 
 			// check for EDD free download
 			$request = self::maybe_free_download($request);
@@ -859,13 +852,12 @@ class External_Updates_Admin {
 				$request = $tmp_obj;
 			}
 
-			$request = self::unserialize_response( $request);
+			$request = self::unserialize_response( $request );
 
 			return $request;
 		}
 
 		return false;
-
 	}
 
 	/**
@@ -1006,10 +998,11 @@ class External_Updates_Admin {
 	 * @return mixed
 	 */
 	public function unserialize_response( $response ) {
-
-		foreach ( $response as $rslug => $rplugin ) {
-			if(isset($response->{$rslug}->sections)){
-				$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+		if ( ! empty( $response ) ) {
+			foreach ( $response as $rslug => $rplugin ) {
+				if ( isset( $response->{$rslug}->sections ) ) {
+					$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+				}
 			}
 		}
 
