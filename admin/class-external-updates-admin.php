@@ -1017,18 +1017,19 @@ class External_Updates_Admin {
 	 * @return array|stdClass Modified update array with custom plugin data.
 	 */
 	public function process_update_transient_data( $version_info, $_transient_data, $type ) {
-
-		if(!is_object($_transient_data)){
+		if ( ! is_object( $_transient_data ) ) {
 			return $_transient_data;
 		}
 
 		$update_array = $this->get_packages_for_update( $type );
 
 		foreach ( $version_info as $name => $package_info ) {
+			if ( empty( $package_info ) ) {
+				continue;
+			}
 
 			// check for upgrade notice info
-			if( isset($package_info->upgrade_notice_raw) && $package_info->upgrade_notice_raw!='' && !isset($package_info->upgrade_notice) ){
-
+			if ( isset( $package_info->upgrade_notice_raw ) && $package_info->upgrade_notice_raw != '' && ! isset( $package_info->upgrade_notice ) ) {
 				$readme = $this->readme_parse_content($package_info->upgrade_notice_raw);
 
 				if(isset($readme['version']) && $update_array[ $name ]['version'] < $readme['version']){
