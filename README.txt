@@ -74,6 +74,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 = 1.1.21 - 2024-06-20 =
 * WordPress v6.5 compatibility check - CHANGED
 
+= 1.1.21 =
+* GetPaid sometimes not sending updates as array - FIXED
+
 = 1.1.20 =
 * Fix PHP error during plugin installation from Extensions section - FIXED
 

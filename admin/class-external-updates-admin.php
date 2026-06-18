@@ -629,13 +629,15 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
+					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'wpgetpaid.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
 						$edd_send_array = true;
 					}
 
 					if ( $edd_send_array ) {
 
 						$version_info = $this->api_request( 'get_version', $src, $packages );
+
+
 						if ( ! empty( $version_info ) ) {
 							$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 						}
@@ -723,6 +725,7 @@ class External_Updates_Admin {
 
 
 		foreach ( $packages as $key => $package ) {
+
 			if ( isset( $package['Update URL'] ) && $package['Update URL'] ) {
 				if ( isset( $package['Version'] ) ) {
 					$package['version'] = $package['Version'];
@@ -836,6 +839,8 @@ class External_Updates_Admin {
 			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
 			'body'      => $api_params
 		) );
+
+//        print_r($request);echo '###'. $_src;exit;
 
 		if ( ! is_wp_error( $request ) ) {
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
