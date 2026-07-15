@@ -2,9 +2,9 @@
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
-Requires at least: 5.2
-Tested up to: 6.5
-Stable tag: 1.1.21
+Requires at least: 6.0
+Tested up to: 7.0
+Stable tag: 1.1.22
 Requires PHP: 5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
