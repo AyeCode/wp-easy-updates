@@ -71,6 +71,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.22 - 2026-07-15 =
+* Fix PHP 8 compatibility warnings and deprecation notices - COMPATIBILITY
+
 = 1.1.21 - 2024-06-20 =
 * WordPress v6.5 compatibility check - CHANGED
 
