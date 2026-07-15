@@ -1061,91 +1061,107 @@ class External_Updates_Admin {
 		return $_transient_data;
 	}
 
-
 	/**
 	 * Updates information on the "View version x.x details" page with custom data.
 	 *
 	 * @uses api_request()
 	 *
-	 * @param mixed $_data
-	 * @param string $_action
-	 * @param object $_args
-	 *
-	 * @return object $_data
+	 * @param object|false $data    The result object or false.
+	 * @param string       $action  The type of API request being performed.
+	 * @param object|null  $args    Arguments passed to the API request.
+	 * @return object|false Updated plugin API data.
 	 */
-	public function plugins_api_filter( $_data, $_action = '', $_args = null ) {
-		$plugins = $this->get_packages_for_update('plugin');
+	public function plugins_api_filter( $data, $action = '', $args = null ) {
+		$plugins = $this->get_packages_for_update( 'plugin' );
 
-		if ( $_action != 'plugin_information' || ! isset( $_args->slug ) || ( ! array_key_exists( $_args->slug, $plugins ) && !isset($_REQUEST['update_url']) ) ) {
-			return $_data;
+		if ( 'plugin_information' !== $action || ! isset( $args->slug ) ) {
+			return $data;
 		}
 
-		$update_url = isset($plugins[ $_args->slug ]['Update URL']) ? $plugins[ $_args->slug ]['Update URL'] : esc_url($_REQUEST['update_url']);
-		$update_id  = isset($plugins[ $_args->slug ]['Update ID']) ? $plugins[ $_args->slug ]['Update ID'] : '';
-		if(!$update_id && isset($_REQUEST['item_id'])){$update_id = absint($_REQUEST['item_id']);}
-		$licence = isset($_REQUEST['license']) ? esc_attr($_REQUEST['license']) : '';
+		$slug = $args->slug;
 
-		$update_array[ $_args->slug ] = array(
-			'slug'    => $_args->slug,                           // the addon slug
-			'version' => isset($plugins[ $_args->slug ]['Version']) ? $plugins[ $_args->slug ]['Version'] : '',    // current version number
-			'license' => $licence,                               // license key (used get_option above to retrieve from DB)
-			'item_id' => $update_id                              // id of this addon on GD site
+		if ( ! array_key_exists( $slug, $plugins ) && ! isset( $_REQUEST['update_url'] ) ) {
+			return $data;
+		}
+
+		$update_url = isset( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		$update_url = isset( $plugins[ $slug ]['Update URL'] ) ? esc_url_raw( $plugins[ $slug ]['Update URL'] ) : $update_url;
+		$update_id  = isset( $plugins[ $slug ]['Update ID'] ) ? absint( $plugins[ $slug ]['Update ID'] ) : 0;
+		$license    = isset( $_REQUEST['license'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['license'] ) ) : '';
+
+		if ( ! $update_id && isset( $_REQUEST['item_id'] ) ) {
+			$update_id = absint( $_REQUEST['item_id'] );
+		}
+
+		$update_array = array(
+			$slug => array(
+				'slug'    => $slug,                   // The addon slug
+				'version' => isset( $plugins[ $slug ]['Version'] ) ? sanitize_text_field( $plugins[ $slug ]['Version'] ) : '', // Current version number
+				'license' => $license,                // License key (used get_option above to retrieve from DB)
+				'item_id' => $update_id               // ID of this addon on GD site
+			)
 		);
 
-		// maybe activate
-		if( !empty($_REQUEST['update_url']) && !empty($_REQUEST['license']) && !empty($_REQUEST['wpeu_activate'])){
-			$activate = self::activate_licence( $_args->slug, $licence, 'plugin', $update_url, $update_id);
+		// Maybe activate
+		if ( ! empty( $_REQUEST['update_url'] ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+			$activate = self::activate_licence( $slug, $licence, 'plugin', $update_url, $update_id );
 		}
 
 		if ( strpos( $update_url, '://github.com/' ) !== false ) {
-			$plugins[ $_args->slug ]['slug'] = $_args->slug;
-			$api_response                    = $this->github_api_request( $update_url, $plugins[ $_args->slug ] );
+			$plugins[ $slug ]['slug'] = $slug;
+			$api_response             = $this->github_api_request( $update_url, $plugins[ $slug ] );
 		} else {
 			$api_response = $this->api_request( 'plugin_information', $update_url, $update_array );
 		}
 
-//		print_r($api_response);exit;
-
-
 		if ( false !== $api_response ) {
-			$_data = reset( $api_response );
+			if ( is_object( $api_response ) ) {
+				$object_vars = get_object_vars( $api_response );
+				$data        = current( $object_vars );
+			} else {
+				$data = reset( $api_response );
+			}
+		}
+
+		if ( ! is_object( $data ) ) {
+			return $data;
 		}
 
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
-		if ( isset( $_data->sections ) && ! is_array( $_data->sections ) ) {
-			$new_sections = array();
-			foreach ( $_data->sections as $key => $key ) {
-				$new_sections[ $key ] = $key;
+		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
+			$_sections = array();
+
+			foreach ( $data->sections as $key => $key ) {
+				$_sections[ $key ] = $key;
 			}
 
-			$_data->sections = $new_sections;
+			$data->sections = $_sections;
 		}
 
-		// strip shortcodes from description
-		if(isset($_data->sections['description']) && $_data->sections['description']){
-			$_data->sections['description'] = strip_shortcodes($_data->sections['description']);
+		// Strip shortcodes from description
+		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
-		// add licence input
-		//$_data->sections['licence key'] = '12345'.print_r($this->get_keys(),true); // @todo this would be a nice section to add
+		// Add licence input
+		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
-
-		if(isset($_data->banners)){
-			$_data->banners = maybe_unserialize( $_data->banners );
+		if ( isset( $data->banners ) ) {
+			$data->banners = maybe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
-		if ( isset( $_data->banners ) && ! is_array( $_data->banners ) ) {
-			$new_banners = array();
+		if ( isset( $data->banners ) && ! is_array( $data->banners ) ) {
+			$_banners = array();
 
-			foreach ( $_data->banners as $key => $key ) {
-				$new_banners[ $key ] = $key;
+			foreach ( $data->banners as $key => $key ) {
+				$_banners[ $key ] = $key;
 			}
 
-			$_data->banners = $new_banners;
+			$data->banners = $_banners;
 		}
 
-		return $_data;
+		return $data;
 	}
 
 	/**
@@ -1153,92 +1169,103 @@ class External_Updates_Admin {
 	 *
 	 * @uses api_request()
 	 *
-	 * @param mixed $_data
-	 * @param string $_action
-	 * @param object $_args
-	 *
-	 * @return object $_data
+	 * @param object|false $data    The result object or false.
+	 * @param string       $action  The type of API request being performed.
+	 * @param object|null  $args    Arguments passed to the API request.
+	 * @return object|false Updated theme API data.
 	 */
-	public function themes_api_filter( $_data, $_action = '', $_args = null ) {
-		$themes = $this->get_packages_for_update('theme');
+	public function themes_api_filter( $data, $action = '', $args = null ) {
+		$themes = $this->get_packages_for_update( 'theme' );
 
-		if ( $_action != 'theme_information' || ! isset( $_args->slug ) || ( ! array_key_exists( $_args->slug,$themes ) && !isset($_REQUEST['update_url']) ) ) {
-			return $_data;
+		if ( 'theme_information' !== $action || ! isset( $args->slug ) ) {
+			return $data;
 		}
 
+		$slug = $args->slug;
 
+		if ( ! array_key_exists( $slug, $themes ) && ! isset( $_REQUEST['update_url'] ) ) {
+			return $data;
+		}
 
-		$update_url = isset($themes[ $_args->slug ]['Update URL']) ? $themes[ $_args->slug ]['Update URL'] : esc_url($_REQUEST['update_url']);
-		$update_id  = isset($themes[ $_args->slug ]['Update ID']) ? $themes[ $_args->slug ]['Update ID'] : '';
-		if(!$update_id && isset($_REQUEST['item_id'])){$update_id = absint($_REQUEST['item_id']);}
-		$licence = isset($_REQUEST['license']) ? esc_attr($_REQUEST['license']) : '';
+		$update_url = isset( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		$update_url = isset( $themes[ $slug ]['Update URL'] ) ? esc_url_raw( $themes[ $slug ]['Update URL'] ) : $update_url;
+		$update_id  = isset( $themes[ $slug ]['Update ID'] ) ? absint( $themes[ $slug ]['Update ID'] ) : 0;
+		$license    = isset( $_REQUEST['license'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['license'] ) ) : '';
 
-		$update_array[ $_args->slug ] = array(
-			'slug'    => $_args->slug,                           // the addon slug
-			'version' => isset($themes[ $_args->slug ]['Version']) ? $themes[ $_args->slug ]['Version'] : '',    // current version number
-			'license' => $licence,                               // license key (used get_option above to retrieve from DB)
-			'item_id' => $update_id                              // id of this addon on GD site
+		if ( ! $update_id && isset( $_REQUEST['item_id'] ) ) {
+			$update_id = absint( $_REQUEST['item_id'] );
+		}
+
+		$update_array = array(
+			$slug => array(
+				'slug'    => $slug,                   // The addon slug
+				'version' => isset( $themes[ $slug ]['Version'] ) ? sanitize_text_field( $themes[ $slug ]['Version'] ) : '', // Current version number
+				'license' => $license,                // License key (used get_option above to retrieve from DB)
+				'item_id' => $update_id               // ID of this addon on GD site
+			)
 		);
 
-
-
-		// maybe activate
-		if( !empty($_REQUEST['update_url']) && !empty($_REQUEST['license']) && !empty($_REQUEST['wpeu_activate'])){
-			$activate = self::activate_licence( $_args->slug, $licence, 'theme', $update_url, $update_id);
+		// Maybe activate
+		if ( ! empty( $_REQUEST['update_url'] ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+			$activate = self::activate_licence( $slug, $licence, 'plugin', $update_url, $update_id );
 		}
 
-
 		if ( strpos( $update_url, '://github.com/' ) !== false ) {
-			$themes[ $_args->slug ]['slug'] = $_args->slug;
-			$api_response                    = $this->github_api_request( $update_url, $themes[ $_args->slug ] );
+			$themes[ $slug ]['slug'] = $slug;
+			$api_response            = $this->github_api_request( $update_url, $themes[ $slug ] );
 		} else {
 			$api_response = $this->api_request( 'theme_information', $update_url, $update_array );
 		}
 
-//		print_r($api_response);exit;
-
-
 		if ( false !== $api_response ) {
-			$_data = reset( $api_response );
+			if ( is_object( $api_response ) ) {
+				$object_vars = get_object_vars( $api_response );
+				$data        = current( $object_vars );
+			} else {
+				$data = reset( $api_response );
+			}
+		}
+
+		if ( ! is_object( $data ) ) {
+			return $data;
 		}
 
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
-		if ( isset( $_data->sections ) && ! is_array( $_data->sections ) ) {
-			$new_sections = array();
-			foreach ( $_data->sections as $key => $key ) {
-				$new_sections[ $key ] = $key;
+		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
+			$_sections = array();
+
+			foreach ( $data->sections as $key => $key ) {
+				$_sections[ $key ] = $key;
 			}
 
-			$_data->sections = $new_sections;
+			$data->sections = $_sections;
 		}
 
-		// strip shortcodes from description
-		if(isset($_data->sections['description']) && $_data->sections['description']){
-			$_data->sections['description'] = strip_shortcodes($_data->sections['description']);
+		// Strip shortcodes from description
+		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
-		// add licence input
-		//$_data->sections['licence key'] = '12345'.print_r($this->get_keys(),true); // @todo this would be a nice section to add
+		// Add licence input
+		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
-
-		if(isset($_data->banners)){
-			$_data->banners = maybe_unserialize( $_data->banners );
+		if ( isset( $data->banners ) ) {
+			$data->banners = maybe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
-		if ( isset( $_data->banners ) && ! is_array( $_data->banners ) ) {
-			$new_banners = array();
+		if ( isset( $data->banners ) && ! is_array( $data->banners ) ) {
+			$_banners = array();
 
-			foreach ( $_data->banners as $key => $key ) {
-				$new_banners[ $key ] = $key;
+			foreach ( $data->banners as $key => $key ) {
+				$_banners[ $key ] = $key;
 			}
 
-			$_data->banners = $new_banners;
+			$data->banners = $_banners;
 		}
 
-		return $_data;
+		return $data;
 	}
-
 
 	/**
 	 * If we just installed a new plugin from licence key we need to update the licence [key] name.
