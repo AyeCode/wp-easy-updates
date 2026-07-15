@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The plugin bootstrap file
  *
@@ -16,9 +15,9 @@
  * Plugin Name:       WP Easy Updates
  * Plugin URI:        https://wpeasyupdates.com/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.1.21
- * Requires at least: 5.2
- * Tested up to:      6.5
+ * Version:           1.1.22
+ * Requires at least: 6.0
+ * Tested up to:      7.0
  * Author:            AyeCode Ltd
  * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
@@ -34,7 +33,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define the version number
-define('WP_EASY_UPDATES_VERSION', '1.1.21');
+define('WP_EASY_UPDATES_VERSION', '1.1.22');
 
 // Define a constant that can be checked against for easy checking of activation status.
 define('WP_EASY_UPDATES_ACTIVE', true);
