@@ -71,6 +71,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 1.1.23 - 2026-07-TBD =
+* Fix PHP 8.5 compatibility notices - COMPATIBILITY
+
 = 1.1.22 - 2026-07-15 =
 * Fix PHP 8 compatibility warnings and deprecation notices - COMPATIBILITY
 
