@@ -2,9 +2,9 @@
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
-Requires at least: 5.2
-Tested up to: 6.5
-Stable tag: 1.1.21
+Requires at least: 6.0
+Tested up to: 7.0
+Stable tag: 1.1.23
 Requires PHP: 5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -70,6 +70,12 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.23 - 2026-07-27 =
+* Fix PHP 8.5 compatibility notices - COMPATIBILITY
+
+= 1.1.22 - 2026-07-15 =
+* Fix PHP 8 compatibility warnings and deprecation notices - COMPATIBILITY
 
 = 1.1.21 - 2024-06-20 =
 * WordPress v6.5 compatibility check - CHANGED
