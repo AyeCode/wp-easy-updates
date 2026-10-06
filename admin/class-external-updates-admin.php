@@ -431,6 +431,17 @@ class External_Updates_Admin {
 
 		$error = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
 
+		// 2.0: one API call; the key is removed locally either way.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::deactivate( $key );
+			if ( ! is_wp_error( $licence_data ) ) {
+				$keys = $this->get_keys();
+				unset( $keys[ $domain ] );
+				$this->update_keys( $keys );
+				return ! empty( $licence_data->success ) ? array( 'success' => __( 'Licence deactivated!', 'external-updates' ) ) : array( 'error' => __( 'Licence was not active on this site.', 'external-updates' ) );
+			}
+		}
+
 		foreach($item_ids as $item_id){
 			// data to send in our API request
 			$api_params = array(
@@ -611,7 +622,28 @@ class External_Updates_Admin {
 
 		if ( ! empty( $sources ) ) {
 
+			// 2.0: every AyeCode package on this site goes to api.ayecode.io in one request (site token, no keys on the wire).
+			// Falls back to the per-domain legacy request if the API is down or answers nothing.
+			$ours = array();
 			foreach ( $sources as $src => $packages ) {
+				if ( External_Updates_API::is_ours( $src ) ) {
+					$ours += $packages;
+				}
+			}
+			$api_done = false;
+			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
+				$version_info = External_Updates_API::check_updates( $ours );
+				if ( ! empty( $version_info ) ) {
+					$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+					$api_done = true;
+				}
+			}
+
+			foreach ( $sources as $src => $packages ) {
+
+				if ( $api_done && External_Updates_API::is_ours( $src ) ) {
+					continue;
+				}
 
 				if ( strpos( $src, '://github.com/' ) !== false ) {
 
@@ -629,7 +661,7 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'wpgetpaid.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
+					if ( External_Updates_API::is_ours( $src ) ) {
 						$edd_send_array = true;
 					}
 

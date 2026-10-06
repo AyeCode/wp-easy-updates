@@ -110,6 +110,7 @@ class External_Updates {
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-external-updates-api.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-external-updates-admin.php';
 
 		$this->loader = new External_Updates_Loader();
