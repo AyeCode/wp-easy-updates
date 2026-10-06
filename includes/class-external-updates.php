@@ -149,9 +149,9 @@ class External_Updates {
 		$this->loader->add_action( 'plugin_action_links', $plugin_admin, 'render_plugin_action_links',10,4 );
 		$this->loader->add_action( 'wp_ajax_exup_ajax_handler', $plugin_admin, 'ajax_handler' );
 
-		// windows servers can have issues with long filenames. https://wordpress.org/plugins/fix-windows-compatibility/
-		// only add the filters if running on Windows
-		if ( 'Darwin' !== PHP_OS && FALSE !== strcasecmp('win', PHP_OS ) && !class_exists( 'DS_WindowsCompatabilityFix', FALSE ) ) {
+		// Windows servers can have issues with long filenames. https://wordpress.org/plugins/fix-windows-compatibility/
+		// Only add the filters if running on Windows
+		if ( 'Darwin' !== PHP_OS && stripos( PHP_OS, 'win' ) !== false && ! class_exists( 'DS_WindowsCompatabilityFix', false ) ) {
 			$this->loader->add_filter( 'wp_unique_filename', $plugin_admin, 'filter_unique_filename', 1, 4 );
 		}
 		
