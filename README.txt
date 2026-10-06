@@ -3,9 +3,9 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: 1.1.23
-Requires PHP: 5.6
+Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,8 +39,8 @@ At the moment this plugin will run a check for each plugin/theme update, when ED
 
 = Minimum Requirements =
 
-* WordPress 5.2 or greater
-* PHP version 5.6 or greater
+* WordPress 6.0 or greater
+* PHP version 7.2 or greater
 
 = Automatic installation =
 
@@ -70,6 +70,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 
 == Changelog ==
+
+= 1.1.24 - 2026-10-TBD =
+* Enhanced data sanitization and output escaping - CHANGED/SECURITY
 
 = 1.1.23 - 2026-07-27 =
 * Fix PHP 8.5 compatibility notices - COMPATIBILITY

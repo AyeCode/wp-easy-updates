@@ -17,7 +17,7 @@
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
  * Version:           1.1.23
  * Requires at least: 6.0
- * Tested up to:      7.0
+ * Tested up to:      7.1
  * Author:            AyeCode Ltd
  * Author URI:        https://ayecode.io/
  * License:           GPL-2.0+
