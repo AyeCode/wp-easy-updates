@@ -49,6 +49,13 @@ class External_Updates_Admin {
 	private $has_plugin_check_run;
 
 	/**
+	 * Version info fetched in this request, per type, replayed on later filter runs.
+	 *
+	 * @var array
+	 */
+	private $version_info_cache = array();
+
+	/**
 	 * Flag if theme update check has run.
 	 *
 	 * @since    1.0.5
@@ -702,6 +709,16 @@ class External_Updates_Admin {
 			return $_transient_data;
 		}
 
+		// Core calls this filter more than once per page load (it sets the transient before and after its own
+		// request, and the force-check page calls wp_update_plugins() twice). One set of requests per page load.
+		if ( isset( $this->version_info_cache[ $type ] ) ) {
+			foreach ( $this->version_info_cache[ $type ] as $version_info ) {
+				$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+			}
+			return $_transient_data;
+		}
+		$this->version_info_cache[ $type ] = array();
+
 		$sources = $this->get_packages_for_update_by_src( $type );
 
 		if ( ! empty( $sources ) ) {
@@ -717,7 +734,8 @@ class External_Updates_Admin {
 			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
 				$version_info = External_Updates_API::check_updates( $ours );
 				if ( ! empty( $version_info ) ) {
-					$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 					$api_done = true;
 				}
 			}
@@ -732,7 +750,8 @@ class External_Updates_Admin {
 						$version_info = $this->api_request( 'github_version', $src, $package );
 
 						if ( ! empty( $version_info ) ) {
-							$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 						}
 					}
 				} else {
@@ -748,14 +767,16 @@ class External_Updates_Admin {
 						$version_info = $this->api_request( 'get_version', $src, $packages );
 
 						if ( ! empty( $version_info ) ) {
-							$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 						}
 					} else {
 						foreach ( $packages as $package ) {
 							$version_info = $this->api_request( 'get_version', $src, $package );
 
 							if ( ! empty( $version_info ) ) {
-								$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 							}
 						}
 					}
