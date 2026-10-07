@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 1.1.23
+Stable tag: 2.0.0
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -71,7 +71,12 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 1.1.24 - 2026-10-TBD =
+= 2.0.0 - 2026-10-07 =
+* AyeCode products (GeoDirectory, UsersWP, GetPaid) now check for updates, activate and deactivate licences through api.ayecode.io in one batched request - CHANGED
+* A per-site token replaces sending the licence key on every update check - SECURITY
+* Falls back to the legacy per-domain requests if api.ayecode.io is unavailable - ADDED
+* wpgetpaid.com recognised as an AyeCode update domain alongside wpinvoicing.com - FIXED
+* Third-party EDD and GitHub updates are unchanged - INFO
 * Enhanced data sanitization and output escaping - CHANGED/SECURITY
 
 = 1.1.23 - 2026-07-27 =
