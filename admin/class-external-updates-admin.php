@@ -283,6 +283,18 @@ class External_Updates_Admin {
 			return false;
 		}
 
+		// 2.0: AyeCode products activate through api.ayecode.io; the response also carries the site token.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::activate( $key, array( $update_id ) );
+			if ( ! is_wp_error( $licence_data ) ) {
+				if ( ! empty( $licence_data->success ) ) {
+					$this->store_activation_result( $package, $key, $licence_data );
+					return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
+				}
+				return array( 'error' => $this->api_activation_error( $licence_data ) );
+			}
+		}
+
 		// data to send in our API request
 		$api_params = array(
 			'edd_action' => 'activate_license',
@@ -358,6 +370,18 @@ class External_Updates_Admin {
 
 		$update_url = "https://" . $domain;
 		$error      = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+
+		// 2.0: all item ids in one API call.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::activate( $key, $item_ids );
+			if ( ! is_wp_error( $licence_data ) ) {
+				if ( ! empty( $licence_data->success ) ) {
+					$this->store_activation_result( $domain, $key, $licence_data );
+					return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
+				}
+				return array( 'error' => $this->api_activation_error( $licence_data ) );
+			}
+		}
 
 		foreach( $item_ids as $item_id ) {
 			// Data to send in our API request
@@ -440,6 +464,17 @@ class External_Updates_Admin {
 		$update_url = "https://" . $domain;
 		$error      = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
 
+		// 2.0: one API call; the key is removed locally either way.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::deactivate( $key );
+			if ( ! is_wp_error( $licence_data ) ) {
+				$keys = $this->get_keys();
+				unset( $keys[ $domain ] );
+				$this->update_keys( $keys );
+				return ! empty( $licence_data->success ) ? array( 'success' => __( 'Licence deactivated!', 'external-updates' ) ) : array( 'error' => __( 'Licence was not active on this site.', 'external-updates' ) );
+			}
+		}
+
 		foreach( $item_ids as $item_id ) {
 			// data to send in our API request
 			$api_params = array(
@@ -489,6 +524,50 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Store an API activation under the package (or membership domain) slug, without the site token.
+	 */
+	public function store_activation_result( $slug, $key, $licence_data ) {
+		$keys = $this->get_keys();
+		$licence_data->key = $key;
+		unset( $licence_data->site );
+		$keys[ $slug ] = $licence_data;
+		$this->update_keys( $keys );
+	}
+
+	/**
+	 * Human message for a failed API activation.
+	 */
+	public function api_activation_error( $licence_data ) {
+		$codes = array();
+		if ( ! empty( $licence_data->items ) ) {
+			foreach ( (array) $licence_data->items as $item ) {
+				$item = (array) $item;
+				if ( ! empty( $item['error'] ) ) {
+					$codes[] = $item['error'];
+				}
+			}
+		} elseif ( ! empty( $licence_data->error ) ) {
+			$codes[] = $licence_data->error;
+		}
+		$messages = array(
+			'expired'            => __( 'Licence key has expired.', 'external-updates' ),
+			'no_activations_left' => __( 'No activations left on this licence key.', 'external-updates' ),
+			'disabled'           => __( 'Licence key is disabled.', 'external-updates' ),
+			'revoked'            => __( 'Licence key is disabled.', 'external-updates' ),
+			'item_name_mismatch' => __( 'This licence key is for a different product.', 'external-updates' ),
+			'invalid_item_id'    => __( 'This licence key is for a different product.', 'external-updates' ),
+			'missing'            => __( 'Licence key is invalid', 'external-updates' ),
+			'invalid'            => __( 'Licence key is invalid', 'external-updates' ),
+		);
+		foreach ( $codes as $code ) {
+			if ( isset( $messages[ $code ] ) ) {
+				return $messages[ $code ];
+			}
+		}
+		return __( 'Something went wrong!', 'external-updates' );
+	}
+
+	/**
 	 * Save and update the licence key info.
 	 *
 	 * @since 1.0.1
@@ -528,6 +607,17 @@ class External_Updates_Admin {
 
 		if ( ! $update_url || ! $update_id ) {
 			return false;
+		}
+
+		// 2.0: one API call; the key is removed locally either way.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::deactivate( $key );
+			if ( ! is_wp_error( $licence_data ) ) {
+				$keys = $this->get_keys();
+				unset( $keys[ $package ] );
+				$this->update_keys( $keys );
+				return ! empty( $licence_data->success ) ? array( 'success' => __( 'Licence deactivated!', 'external-updates' ) ) : array( 'error' => __( 'Licence was not active on this site.', 'external-updates' ) );
+			}
 		}
 
 		// data to send in our API request
@@ -615,7 +705,28 @@ class External_Updates_Admin {
 		$sources = $this->get_packages_for_update_by_src( $type );
 
 		if ( ! empty( $sources ) ) {
+			// 2.0: every AyeCode package on this site goes to api.ayecode.io in one request (site token, no keys on the wire).
+			// Falls back to the per-domain legacy request if the API is down or answers nothing.
+			$ours = array();
 			foreach ( $sources as $src => $packages ) {
+				if ( External_Updates_API::is_ours( $src ) ) {
+					$ours += $packages;
+				}
+			}
+			$api_done = false;
+			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
+				$version_info = External_Updates_API::check_updates( $ours );
+				if ( ! empty( $version_info ) ) {
+					$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+					$api_done = true;
+				}
+			}
+
+			foreach ( $sources as $src => $packages ) {
+				if ( $api_done && External_Updates_API::is_ours( $src ) ) {
+					continue;
+				}
+
 				if ( strpos( $src, '://github.com/' ) !== false ) {
 					foreach ( $packages as $package ) {
 						$version_info = $this->api_request( 'github_version', $src, $package );
@@ -629,7 +740,7 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
+					if ( External_Updates_API::is_ours( $src ) ) {
 						$edd_send_array = true;
 					}
 
