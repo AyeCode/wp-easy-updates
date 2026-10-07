@@ -946,6 +946,35 @@ class External_Updates_Admin {
 		 */
 		$api_params = apply_filters('wp_easy_updates_api_params',$api_params,$_src);
 
+		// 2.0: single requests for AyeCode products (install from an extensions screen, "View details") go to the
+		// API like the batched update check, so the package link is a signed API download for this site.
+		if ( External_Updates_API::is_ours( $_src ) && ! External_Updates_API::is_down() ) {
+			$packages = array();
+
+			if ( $single ) {
+				$packages[ $api_params['slug'] ] = $api_params;
+			} elseif ( ! empty( $api_params['update_array'] ) && is_array( $api_params['update_array'] ) ) {
+				foreach ( $api_params['update_array'] as $pslug => $p ) {
+					$packages[ $pslug ] = array(
+						'slug'    => $pslug,
+						'item_id' => isset( $p['item_id'] ) ? $p['item_id'] : 0,
+						'version' => isset( $p['version'] ) ? $p['version'] : '',
+						'beta'    => ! empty( $p['beta'] ),
+						'license' => isset( $p['license'] ) ? $p['license'] : '',
+					);
+				}
+			}
+
+			$request = ! empty( $packages ) ? External_Updates_API::check_updates( $packages, false ) : false;
+
+			if ( false !== $request ) {
+				$request = self::maybe_free_download( $request );
+				$request = self::maybe_add_version( $request, $api_params );
+
+				return self::unserialize_response( $request ); // already keyed by slug for both shapes
+			}
+		}
+
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
 			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,

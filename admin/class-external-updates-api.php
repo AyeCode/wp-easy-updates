@@ -103,9 +103,11 @@ class External_Updates_API {
 	 * Batched update check for every AyeCode package on this site, in one request.
 	 *
 	 * @param array $packages slug => package array (slug, item_id, version, beta, license)
+	 * @param bool  $record_versions false for a one-off lookup (install, view details) so the site's installed
+	 *                               versions on the API are not replaced by a single entry.
 	 * @return object|false object keyed by slug with EDD-SL shaped entries, as api_request() returns
 	 */
-	public static function check_updates( array $packages ) {
+	public static function check_updates( array $packages, $record_versions = true ) {
 		$list = array();
 		$versions = array();
 		foreach ( $packages as $slug => $p ) {
@@ -118,7 +120,11 @@ class External_Updates_API {
 			);
 			$versions[ $slug ] = isset( $p['version'] ) ? $p['version'] : '';
 		}
-		$data = self::request( '/v1/updates', array( 'url' => home_url(), 'packages' => $list, 'versions' => $versions ) );
+		$body = array( 'url' => home_url(), 'packages' => $list );
+		if ( $record_versions ) {
+			$body['versions'] = $versions;
+		}
+		$data = self::request( '/v1/updates', $body );
 		if ( is_wp_error( $data ) || empty( $data['packages'] ) ) {
 			return false;
 		}

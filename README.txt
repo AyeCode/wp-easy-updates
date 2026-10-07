@@ -74,6 +74,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 = 2.0.0 - 2026-10-07 =
 * AyeCode products (GeoDirectory, UsersWP, GetPaid) now check for updates, activate and deactivate licences through api.ayecode.io in one batched request - CHANGED
 * A per-site token replaces sending the licence key on every update check - SECURITY
+* Installing an add-on from an extensions screen (GeoDirectory, UsersWP, GetPaid) now fetches the package from api.ayecode.io, same as updates - FIXED
 * Falls back to the legacy per-domain requests if api.ayecode.io is unavailable - ADDED
 * wpgetpaid.com recognised as an AyeCode update domain alongside wpinvoicing.com - FIXED
 * Third-party EDD and GitHub updates are unchanged - INFO
