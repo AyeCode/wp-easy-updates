@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 1.1.23
+Stable tag: 1.2.0
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -71,8 +71,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 1.1.24 - 2026-10-TBD =
+= 1.2.0 - 2026-10-08 =
 * Enhanced data sanitization and output escaping - CHANGED/SECURITY
+* GitHub API rate limit errors when checking for updates, release info is now cached - FIXED
 
 = 1.1.23 - 2026-07-27 =
 * Fix PHP 8.5 compatibility notices - COMPATIBILITY

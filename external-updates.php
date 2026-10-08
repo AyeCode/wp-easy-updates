@@ -15,7 +15,7 @@
  * Plugin Name:       WP Easy Updates
  * Plugin URI:        https://wpeasyupdates.com/
  * Description:       Update plugins provided by EDD software licencing or via github with ease.
- * Version:           1.1.23
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Author:            AyeCode Ltd
@@ -33,7 +33,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define the version number
-define('WP_EASY_UPDATES_VERSION', '1.1.23');
+define('WP_EASY_UPDATES_VERSION', '1.2.0');
 
 // Define a constant that can be checked against for easy checking of activation status.
 define('WP_EASY_UPDATES_ACTIVE', true);

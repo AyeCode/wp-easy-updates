@@ -334,6 +334,9 @@ class External_Updates_Admin {
 	 * @return array|bool
 	 */
 	public function activate_membership_licence( $domain, $key, $item_ids ) {
+		$domain   = $this->sanitize_membership_domain( $domain );
+		$item_ids = $this->sanitize_item_ids( $item_ids );
+
 		// @todo remove this once keys are in core plugins
 		##########################################################
 		######### < Temp Fix for Lifetime membership keys ########
@@ -348,9 +351,6 @@ class External_Updates_Admin {
 		##########################################################
 		######### Temp Fix for Lifetime membership keys /> #######
 		##########################################################
-
-		$domain   = $this->sanitize_membership_domain( $domain );
-		$item_ids = $this->sanitize_item_ids( $item_ids );
 
 		if ( ! $domain || empty( $item_ids ) ) {
 			return false;
@@ -415,6 +415,9 @@ class External_Updates_Admin {
 	 * @return array|bool
 	 */
 	public function deactivate_membership_licence( $domain, $key, $item_ids ) {
+		$domain   = $this->sanitize_membership_domain( $domain );
+		$item_ids = $this->sanitize_item_ids( $item_ids );
+
 		// @todo remove this once keys are in core plugins
 		##########################################################
 		######### < Temp Fix for Lifetime membership keys ########
@@ -429,9 +432,6 @@ class External_Updates_Admin {
 		##########################################################
 		######### Temp Fix for Lifetime membership keys /> #######
 		##########################################################
-
-		$domain   = $this->sanitize_membership_domain( $domain );
-		$item_ids = $this->sanitize_item_ids( $item_ids );
 
 		if ( ! $domain || empty( $item_ids ) ) {
 			return false;
@@ -500,6 +500,10 @@ class External_Updates_Admin {
 
 		update_site_option( 'exup_keys', $network_keys  ); // update network option
 		update_option( 'exup_keys', $keys ); // update single site option
+
+		// The cached update info (package url, update status) depends on the licence so force a fresh check.
+		delete_site_transient( 'update_plugins' );
+		delete_site_transient( 'update_themes' );
 	}
 
 	/**
@@ -914,20 +918,37 @@ class External_Updates_Admin {
 		// For testing to provide more than 60 github api calls per hour
 		//$_src .= '?client_id=xxxx&client_secret=xxxx';
 
-		$request = wp_remote_get( $_src, array(
-			'timeout'   => 15,
-			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
-			'body'      => ''
-		) );
+		// Cache the releases to prevent hitting the GitHub API rate limit (60 requests per hour).
+		$cache_key = 'wpeu_github_' . md5( $_src );
+		$request   = get_site_transient( $cache_key );
 
-		if ( ! is_wp_error( $request ) ) {
-			$request = json_decode( wp_remote_retrieve_body( $request ) );
+		// Force check.
+		$force_check = ! empty( $_GET['force-check'] ) && current_user_can( 'update_plugins' );
 
-			if ( ! empty( $request ) ) {
-				foreach ( $request as $release ) {
-					if ( isset( $release->prerelease ) && $release->prerelease != 1 ) {
-						return $this->convert_github_release( $_data, $release );
-					}
+		if ( empty( $request ) || $force_check ) {
+			$request  = array();
+			$response = wp_remote_get( $_src, array(
+				'timeout'   => 15,
+				'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
+				'body'      => ''
+			) );
+
+			if ( ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
+				$body = json_decode( wp_remote_retrieve_body( $response ) );
+
+				if ( is_array( $body ) ) {
+					$request = $body;
+				}
+			}
+
+			// Cache for 1 hour.
+			set_site_transient( $cache_key, $request, HOUR_IN_SECONDS );
+		}
+
+		if ( ! empty( $request ) ) {
+			foreach ( $request as $release ) {
+				if ( isset( $release->prerelease ) && $release->prerelease != 1 ) {
+					return $this->convert_github_release( $_data, $release );
 				}
 			}
 		}
