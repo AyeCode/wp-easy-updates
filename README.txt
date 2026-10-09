@@ -78,7 +78,10 @@ Yes, this will work as normal, for github the info will be limited to the releas
 * Falls back to the legacy per-domain requests if api.ayecode.io is unavailable - ADDED
 * wpgetpaid.com recognised as an AyeCode update domain alongside wpinvoicing.com - FIXED
 * Third-party EDD and GitHub updates are unchanged - INFO
+
+= 1.2.0 - 2026-10-08 =
 * Enhanced data sanitization and output escaping - CHANGED/SECURITY
+* GitHub API rate limit errors when checking for updates, release info is now cached - FIXED
 
 = 1.1.23 - 2026-07-27 =
 * Fix PHP 8.5 compatibility notices - COMPATIBILITY
