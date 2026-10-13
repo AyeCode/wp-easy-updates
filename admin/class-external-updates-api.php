@@ -40,11 +40,14 @@ class External_Updates_API {
 		return untrailingslashit( apply_filters( 'wp_easy_updates_api_base', $base ) );
 	}
 
-	/** Site token: ours, else the one AyeCode Connect 2.0 obtained at registration. */
+	/**
+	 * Site token: the one AyeCode Connect holds when the site is connected, else ours. The API keeps one token per
+	 * site, so Connect's (the newest) must win or the two plugins keep replacing each other's.
+	 */
 	public static function get_token() {
-		$token = get_option( self::OPTION_TOKEN, '' );
+		$token = get_option( 'ayecode_connect_site_token', '' );
 		if ( ! $token ) {
-			$token = get_option( 'ayecode_connect_site_token', '' );
+			$token = get_option( self::OPTION_TOKEN, '' );
 		}
 		return is_string( $token ) ? $token : '';
 	}

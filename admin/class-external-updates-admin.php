@@ -734,19 +734,28 @@ class External_Updates_Admin {
 					$ours += $packages;
 				}
 			}
-			$api_done = false;
+			$api_done     = false;
+			$api_answered = array(); // slugs the API knows; any it does not still ask the product domain
 			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
 				$version_info = External_Updates_API::check_updates( $ours );
 				if ( ! empty( $version_info ) ) {
 						$this->version_info_cache[ $type ][] = $version_info;
 						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 					$api_done = true;
+					foreach ( (array) $version_info as $slug => $info ) {
+						if ( is_object( $info ) && ! empty( $info->new_version ) ) {
+							$api_answered[ $slug ] = true;
+						}
+					}
 				}
 			}
 
 			foreach ( $sources as $src => $packages ) {
 				if ( $api_done && External_Updates_API::is_ours( $src ) ) {
-					continue;
+					$packages = array_diff_key( $packages, $api_answered );
+					if ( empty( $packages ) ) {
+						continue;
+					}
 				}
 
 				if ( strpos( $src, '://github.com/' ) !== false ) {
