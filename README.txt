@@ -71,7 +71,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 2.0.0 - 2026-10-07 =
+= 2.0.0 - 2026-10-13 =
 * AyeCode products (GeoDirectory, UsersWP, GetPaid) now check for updates, activate and deactivate licences through api.ayecode.io in one batched request - CHANGED
 * A per-site token replaces sending the licence key on every update check - SECURITY
 * Installing an add-on from an extensions screen (GeoDirectory, UsersWP, GetPaid) now fetches the package from api.ayecode.io, same as updates - FIXED
@@ -167,3 +167,7 @@ Theme licences can be added via Themes > Theme Details page - ADDED
 = 1.0.4 =
 
 Initial release
+== Upgrade Notice ==
+
+= 2.0.0 =
+Major update. Updates and licences for GeoDirectory, UsersWP and GetPaid now go through api.ayecode.io. Your licence keys and other update sources keep working as before.
