@@ -174,6 +174,11 @@ class External_Updates_Admin {
 	public function sanitize_membership_domain( $domain ) {
 		$domain = strtolower( trim( sanitize_text_field( (string) $domain ) ) );
 
+		// Membership keys only exist on AyeCode's own stores; anything else (paths, ports, IPs) is refused.
+		if ( ! preg_match( '/^[a-z0-9.-]+$/', $domain ) || ! External_Updates_API::is_ours( 'https://' . $domain ) ) {
+			return '';
+		}
+
 		return $domain;
 	}
 
@@ -186,7 +191,7 @@ class External_Updates_Admin {
 		global $wpdb;
 
 		// security checks
-		if ( ! current_user_can( 'administrator' ) ) {
+		if ( ! current_user_can( is_multisite() ? 'manage_network_plugins' : 'update_plugins' ) ) {
 			wp_die();
 		}
 
@@ -567,7 +572,7 @@ class External_Updates_Admin {
 			'invalid'            => __( 'Licence key is invalid', 'external-updates' ),
 		);
 		foreach ( $codes as $code ) {
-			if ( isset( $messages[ $code ] ) ) {
+			if ( ( is_string( $code ) || is_int( $code ) ) && isset( $messages[ $code ] ) ) {
 				return $messages[ $code ];
 			}
 		}
@@ -697,6 +702,35 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Remove wordpress.org's update offers for the plugins and themes WP Easy Updates manages. Core still asks
+	 * wordpress.org about them by folder name, so anyone who registers the same slug there could otherwise push their
+	 * own code to every site as an "update". The offer from the item's own source is added after this.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param object $_transient_data
+	 * @param string $type plugin|theme
+	 * @return object
+	 */
+	public function drop_wporg_offers( $_transient_data, $type ) {
+		if ( ! is_object( $_transient_data ) || empty( $_transient_data->response ) || ! is_array( $_transient_data->response ) ) {
+			return $_transient_data;
+		}
+		foreach ( $this->get_packages_for_update( $type ) as $file => $package ) {
+			if ( empty( $package['Update URL'] ) || ! isset( $_transient_data->response[ $file ] ) ) {
+				continue;
+			}
+			$offer = (array) $_transient_data->response[ $file ];
+			$host  = isset( $offer['package'] ) && is_string( $offer['package'] ) ? strtolower( (string) wp_parse_url( $offer['package'], PHP_URL_HOST ) ) : '';
+			$id    = isset( $offer['id'] ) && is_string( $offer['id'] ) ? $offer['id'] : '';
+			if ( 'downloads.wordpress.org' === $host || 0 === strpos( $id, 'w.org/' ) ) {
+				unset( $_transient_data->response[ $file ] );
+			}
+		}
+		return $_transient_data;
+	}
+
+	/**
 	 * Check for plugin updates by source.
 	 *
 	 * @param $_transient_data
@@ -712,6 +746,8 @@ class External_Updates_Admin {
 			$this->has_theme_check_run = true;
 			return $_transient_data;
 		}
+
+		$_transient_data = $this->drop_wporg_offers( $_transient_data, $type );
 
 		// Core calls this filter more than once per page load (it sets the transient before and after its own
 		// request, and the force-check page calls wp_update_plugins() twice). One set of requests per page load.
@@ -1157,6 +1193,39 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Unserialize data from a remote store into plain arrays and values only: never objects, which a malicious or
+	 * spoofed response could use for PHP object injection. Non-serialized values are returned as they are.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function safe_unserialize( $value ) {
+		if ( is_string( $value ) && is_serialized( $value ) ) {
+			return @unserialize( trim( $value ), array( 'allowed_classes' => false ) ); // phpcs:ignore
+		}
+		return $value;
+	}
+
+	/**
+	 * Arguments for an onclick JS call, each a JSON string with quotes and tags hex-escaped, so a value can never end
+	 * the string or the attribute it sits in.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public static function js_args( array $args ) {
+		$out = array();
+		foreach ( $args as $arg ) {
+			$out[] = wp_json_encode( (string) $arg, JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP );
+		}
+		return implode( ',', $out );
+	}
+
+	/**
 	 * Unserialize the api response if needed for sections.
 	 *
 	 * @param array $response The response from the update api request.
@@ -1168,7 +1237,7 @@ class External_Updates_Admin {
 		if ( ! empty( $response ) && is_object( $response ) ) {
 			foreach ( $response as $rslug => $rplugin ) {
 				if ( isset( $response->{$rslug}->sections ) ) {
-					$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+					$response->{$rslug}->sections = self::safe_unserialize( $response->{$rslug}->sections );
 				}
 			}
 		}
@@ -1249,6 +1318,10 @@ class External_Updates_Admin {
 
 		$slug        = $args->slug;
 		$request_url = isset( $_REQUEST['update_url'] ) && is_string( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		// A link can carry any update_url, so only AyeCode's own stores are asked for an item that is not installed.
+		if ( $request_url && ! External_Updates_API::is_ours( $request_url ) ) {
+			$request_url = '';
+		}
 		$plugins     = $this->get_packages_for_update( 'plugin' );
 
 		if ( ! array_key_exists( $slug, $plugins ) && ! $request_url ) {
@@ -1273,7 +1346,8 @@ class External_Updates_Admin {
 		);
 
 		// Maybe activate
-		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+		// Activating from the request only inside core's install AJAX, which checks the "updates" nonce (never from a link).
+		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) && wp_doing_ajax() ) {
 			$activate = $this->activate_licence( $slug, $license, 'plugin', $update_url, $update_id );
 		}
 
@@ -1309,7 +1383,7 @@ class External_Updates_Admin {
 		}
 
 		// Strip shortcodes from description
-		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+		if ( isset( $data->sections['description'] ) && is_string( $data->sections['description'] ) && '' !== $data->sections['description'] ) {
 			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
@@ -1317,7 +1391,7 @@ class External_Updates_Admin {
 		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
 		if ( isset( $data->banners ) ) {
-			$data->banners = maybe_unserialize( $data->banners );
+			$data->banners = self::safe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
@@ -1351,6 +1425,10 @@ class External_Updates_Admin {
 
 		$slug        = $args->slug;
 		$request_url = isset( $_REQUEST['update_url'] ) && is_string( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		// A link can carry any update_url, so only AyeCode's own stores are asked for an item that is not installed.
+		if ( $request_url && ! External_Updates_API::is_ours( $request_url ) ) {
+			$request_url = '';
+		}
 		$themes      = $this->get_packages_for_update( 'theme' );
 
 		if ( ! array_key_exists( $slug, $themes ) && ! $request_url ) {
@@ -1375,7 +1453,8 @@ class External_Updates_Admin {
 		);
 
 		// Maybe activate
-		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+		// Activating from the request only inside core's install AJAX, which checks the "updates" nonce (never from a link).
+		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) && wp_doing_ajax() ) {
 			$activate = $this->activate_licence( $slug, $license, 'theme', $update_url, $update_id );
 		}
 
@@ -1411,7 +1490,7 @@ class External_Updates_Admin {
 		}
 
 		// Strip shortcodes from description
-		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+		if ( isset( $data->sections['description'] ) && is_string( $data->sections['description'] ) && '' !== $data->sections['description'] ) {
 			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
@@ -1419,7 +1498,7 @@ class External_Updates_Admin {
 		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
 		if ( isset( $data->banners ) ) {
-			$data->banners = maybe_unserialize( $data->banners );
+			$data->banners = self::safe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
@@ -1879,27 +1958,27 @@ class External_Updates_Admin {
 				// free
 				if ( $button_args['licensing'] === false || ( isset( $button_args['price'] ) && $button_args['price'] == '0.00' ) ) {
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$licence    = 'free';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_plugin(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && empty( $button_args['license'] ) ) { // needs licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_licence_popup(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","plugin"); return false;';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, 'plugin' ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && $button_args['license'] ) { // has licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
-					$licence    = isset( $button_args['license'] ) ? esc_attr( $button_args['license'] ) : 'license'; // @todo will this always pass a esc_attr() filter?
+					$licence    = isset( $button_args['license'] ) ? sanitize_text_field( $button_args['license'] ) : 'license';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_plugin(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				}
 			}
 		}
@@ -1910,27 +1989,27 @@ class External_Updates_Admin {
 				// free
 				if ( $button_args['licensing'] === false || ( isset( $button_args['price'] ) && $button_args['price'] == '0.00' ) && ! empty( $button_args['update_url'] ) ) {
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$licence    = 'free';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_theme(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_theme(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && empty( $button_args['license'] ) ) { // needs licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_licence_popup(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","theme"); return false;';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, 'theme' ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && $button_args['license'] ) { // has licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
-					$licence    = isset( $button_args['license'] ) ? esc_attr( $button_args['license'] ) : 'license'; // @todo will this always pass a esc_attr() filter?
+					$licence    = isset( $button_args['license'] ) ? sanitize_text_field( $button_args['license'] ) : 'license';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_theme(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_theme(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				}
 			}
 		}

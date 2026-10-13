@@ -78,7 +78,7 @@ class External_Updates_API {
 		}
 		$response = wp_remote_post( self::base() . $path, array(
 			'timeout'   => 20,
-			'sslverify' => WP_EASY_UPDATES_SSL_VERIFY,
+			'sslverify' => true, // always: these requests carry the site token and licence keys
 			'headers'   => $headers,
 			'body'      => wp_json_encode( $body ),
 		) );
@@ -93,7 +93,10 @@ class External_Updates_API {
 			return new WP_Error( 'api_down', 'API returned ' . $code );
 		}
 		if ( 401 === $code && $token ) {
-			delete_option( self::OPTION_TOKEN ); // token revoked (site disconnected); the next activation re-issues one
+			// Our own token is dropped and keys are sent instead. AyeCode Connect's token is Connect's to replace.
+			if ( get_option( self::OPTION_TOKEN ) === $token ) {
+				delete_option( self::OPTION_TOKEN );
+			}
 			return new WP_Error( 'api_unauthorized', 'Site token rejected' );
 		}
 		if ( $code >= 400 ) {
@@ -136,6 +139,9 @@ class External_Updates_API {
 		}
 		$out = new stdClass();
 		foreach ( $data['packages'] as $slug => $info ) {
+			if ( ! is_string( $slug ) || '' === $slug || "\0" === $slug[0] || ! is_array( $info ) ) {
+				continue; // malformed entry: skip it rather than fatal the update check
+			}
 			$out->{$slug} = (object) $info;
 		}
 		return $out;
