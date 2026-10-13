@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release again
+        required: true
+      force:
+        description: Force (roll back to an older version, or change the plugin folder)
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    uses: AyeCode/release-workflow/.github/workflows/release.yml@main
+    with:
+      slug: wp-easy-updates
+      tag: ${{ github.event.inputs.tag || github.ref_name }}
+      force: ${{ github.event.inputs.force == 'true' }}
+    secrets: inherit
