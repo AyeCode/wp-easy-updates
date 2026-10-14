@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 1.2.0
+Stable tag: 2.0.0
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -71,6 +71,21 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 2.0.0 - 2026-10-13 =
+* AyeCode products (GeoDirectory, UsersWP, GetPaid) now check for updates, activate and deactivate licences through api.ayecode.io in one batched request - CHANGED
+* Sites connected with AyeCode Connect use its site token instead of sending licence keys on every update check - SECURITY
+* Data from update servers is never unserialized into PHP objects - SECURITY
+* A link can no longer make the site contact an arbitrary update server or activate a key; only AyeCode's stores are accepted from a request - SECURITY
+* wordpress.org update offers are ignored for plugins and themes this plugin manages, so a matching wordpress.org slug cannot push an update - SECURITY
+* Licence actions need the update_plugins capability (network admins on multisite) - SECURITY
+* Requests to api.ayecode.io always verify SSL; membership keys only activate on AyeCode domains - SECURITY
+* Install buttons on extension screens escape their values for JavaScript; malformed update data no longer causes PHP errors - FIXED
+* Installing an add-on from an extensions screen (GeoDirectory, UsersWP, GetPaid) now fetches the package from api.ayecode.io, same as updates - FIXED
+* Downloads from api.ayecode.io get a fresh short-lived link at the moment of download (updates, bulk and automatic updates, installs), so an update offer cached by WordPress for hours still downloads - ADDED
+* Falls back to the legacy per-domain requests if api.ayecode.io is unavailable - ADDED
+* wpgetpaid.com recognised as an AyeCode update domain alongside wpinvoicing.com - FIXED
+* Third-party EDD and GitHub updates are unchanged - INFO
+
 = 1.2.0 - 2026-10-08 =
 * Enhanced data sanitization and output escaping - CHANGED/SECURITY
 * GitHub API rate limit errors when checking for updates, release info is now cached - FIXED
@@ -83,6 +98,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 = 1.1.21 - 2024-06-20 =
 * WordPress v6.5 compatibility check - CHANGED
+
+= 1.1.21 =
+* GetPaid sometimes not sending updates as array - FIXED
 
 = 1.1.20 =
 * Fix PHP error during plugin installation from Extensions section - FIXED
@@ -156,3 +174,7 @@ Theme licences can be added via Themes > Theme Details page - ADDED
 = 1.0.4 =
 
 Initial release
+== Upgrade Notice ==
+
+= 2.0.0 =
+Major update. Updates and licences for GeoDirectory, UsersWP and GetPaid now go through api.ayecode.io. Your licence keys and other update sources keep working as before.
