@@ -81,6 +81,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 * Requests to api.ayecode.io always verify SSL; membership keys only activate on AyeCode domains - SECURITY
 * Install buttons on extension screens escape their values for JavaScript; malformed update data no longer causes PHP errors - FIXED
 * Installing an add-on from an extensions screen (GeoDirectory, UsersWP, GetPaid) now fetches the package from api.ayecode.io, same as updates - FIXED
+* Downloads from api.ayecode.io get a fresh short-lived link at the moment of download (updates, bulk and automatic updates, installs), so an update offer cached by WordPress for hours still downloads - ADDED
 * Falls back to the legacy per-domain requests if api.ayecode.io is unavailable - ADDED
 * wpgetpaid.com recognised as an AyeCode update domain alongside wpinvoicing.com - FIXED
 * Third-party EDD and GitHub updates are unchanged - INFO

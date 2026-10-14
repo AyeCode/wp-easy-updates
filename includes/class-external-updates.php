@@ -158,6 +158,7 @@ class External_Updates {
 		
 		$this->loader->add_filter( 'pre_set_site_transient_update_plugins', $plugin_admin, 'check_for_plugin_updates' );
 		$this->loader->add_filter( 'plugins_api', $plugin_admin, 'plugins_api_filter', 10, 3 );
+		$this->loader->add_filter( 'upgrader_package_options', $plugin_admin, 'fresh_package_options', 10, 1 );
 		$this->loader->add_filter( 'upgrader_pre_download', $plugin_admin, 'update_errors', 10, 3 );
 		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_requires_licence', 10, 3 );
 		$this->loader->add_filter( 'after_plugin_row', $plugin_admin, 'show_upgrade_notice', 10, 3 );

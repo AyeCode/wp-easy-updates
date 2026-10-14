@@ -72,6 +72,13 @@ class External_Updates_Admin {
 	private static $_upgrade = FALSE;
 
 	/**
+	 * API package links handed out by plugins_api / themes_api in this request, so an install can ask for a fresh one.
+	 *
+	 * @var array package url => array( item_id, license )
+	 */
+	private $install_packages = array();
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @since    1.0.0
@@ -1371,6 +1378,9 @@ class External_Updates_Admin {
 			return $data;
 		}
 
+		// An install from this screen downloads in the same request: remember which item its API link is for.
+		$this->remember_install_package( $data, $update_id, $license );
+
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
 		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
 			$_sections = array();
@@ -1478,6 +1488,9 @@ class External_Updates_Admin {
 			return $data;
 		}
 
+		// An install from this screen downloads in the same request: remember which item its API link is for.
+		$this->remember_install_package( $data, $update_id, $license );
+
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
 		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
 			$_sections = array();
@@ -1546,6 +1559,79 @@ class External_Updates_Admin {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Remember the item behind an API package link from plugins_api / themes_api, for fresh_package_options().
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param object $data    The plugins_api / themes_api result.
+	 * @param int    $item_id The item's "Update ID".
+	 * @param string $license The licence key sent with the request, if any.
+	 */
+	public function remember_install_package( $data, $item_id, $license ) {
+		if ( ! $item_id ) {
+			return;
+		}
+		foreach ( array( 'download_link', 'package' ) as $field ) {
+			if ( isset( $data->{$field} ) && External_Updates_API::is_api_package( $data->{$field} ) ) {
+				$this->install_packages[ $data->{$field} ] = array( 'item_id' => absint( $item_id ), 'license' => (string) $license );
+			}
+		}
+	}
+
+	/**
+	 * Swap an api.ayecode.io package link for a fresh one just before WordPress downloads it. API links only live a
+	 * few minutes but core keeps update offers for up to 12 hours. Runs for single, bulk and automatic updates
+	 * (hook_extra has the plugin file or theme slug) and for installs from plugins_api / themes_api results in this
+	 * request. If the API call fails the original package is kept and the usual download error is shown.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $options The WP_Upgrader::run() options.
+	 * @return array
+	 */
+	public function fresh_package_options( $options ) {
+		if ( ! is_array( $options ) || empty( $options['package'] ) || ! External_Updates_API::is_api_package( $options['package'] ) ) {
+			return $options;
+		}
+
+		$extra   = isset( $options['hook_extra'] ) && is_array( $options['hook_extra'] ) ? $options['hook_extra'] : array();
+		$item_id = 0;
+		$license = '';
+		$beta    = false;
+
+		if ( ! empty( $extra['plugin'] ) || ! empty( $extra['theme'] ) ) {
+			$type     = ! empty( $extra['plugin'] ) ? 'plugin' : 'theme';
+			$slug     = $extra[ $type ];
+			$packages = $this->get_packages_for_update( $type );
+
+			if ( ! is_string( $slug ) || empty( $packages[ $slug ]['Update ID'] ) ) {
+				return $options;
+			}
+
+			// As the update check sends it (get_packages_for_update_by_src()).
+			$keys    = $this->get_keys();
+			$item_id = absint( $packages[ $slug ]['Update ID'] );
+			$license = isset( $keys[ $slug ]->key ) ? $keys[ $slug ]->key : '';
+			$beta    = ! empty( $packages[ $slug ]['beta'] );
+		} elseif ( isset( $this->install_packages[ $options['package'] ] ) ) {
+			$item_id = $this->install_packages[ $options['package'] ]['item_id'];
+			$license = $this->install_packages[ $options['package'] ]['license'];
+		}
+
+		if ( ! $item_id ) {
+			return $options;
+		}
+
+		$package = External_Updates_API::download_link( $item_id, $license, $beta );
+
+		if ( ! is_wp_error( $package ) ) {
+			$options['package'] = $package;
+		}
+
+		return $options;
 	}
 
 	/**

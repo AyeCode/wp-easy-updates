@@ -126,7 +126,8 @@ class External_Updates_API {
 			);
 			$versions[ $slug ] = isset( $p['version'] ) ? $p['version'] : '';
 		}
-		$body = array( 'url' => home_url(), 'packages' => $list );
+		// fresh_links: package links are short lived, so WPEU asks for a new one when the download starts (download_link()).
+		$body = array( 'url' => home_url(), 'packages' => $list, 'fresh_links' => true );
 		if ( $record_versions ) {
 			$body['versions'] = $versions;
 		}
@@ -145,6 +146,46 @@ class External_Updates_API {
 			$out->{$slug} = (object) $info;
 		}
 		return $out;
+	}
+
+	/**
+	 * True if a package URL is an API download link (same scheme and host as the API base).
+	 */
+	public static function is_api_package( $url ) {
+		if ( ! is_string( $url ) || '' === $url ) {
+			return false;
+		}
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$ours = strtolower( (string) wp_parse_url( self::base(), PHP_URL_HOST ) );
+		return $host && $host === $ours && strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ) === strtolower( (string) wp_parse_url( self::base(), PHP_URL_SCHEME ) );
+	}
+
+	/**
+	 * A fresh download link for an item, asked for when the download starts: API links only live a few minutes but
+	 * WordPress keeps update offers (and their package URL) for hours. Same auth as the update check: the site token
+	 * when there is one, else the item's licence key.
+	 *
+	 * @param int    $item_id The item's "Update ID".
+	 * @param string $license The item's licence key, sent only when the site has no token.
+	 * @param bool   $beta    True if the site takes beta versions of this item.
+	 * @return string|WP_Error the new package URL
+	 */
+	public static function download_link( $item_id, $license = '', $beta = false ) {
+		$body = array( 'url' => home_url(), 'item_id' => (int) $item_id );
+		if ( $license && ! self::get_token() ) {
+			$body['license'] = $license;
+		}
+		if ( $beta ) {
+			$body['beta'] = true;
+		}
+		$data = self::request( '/v1/download-link', $body );
+		if ( is_wp_error( $data ) ) {
+			return $data;
+		}
+		if ( empty( $data['package'] ) || ! self::is_api_package( $data['package'] ) ) {
+			return new WP_Error( 'api_bad_link', 'No usable download link in the API response' );
+		}
+		return $data['package'];
 	}
 
 	/**
