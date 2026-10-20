@@ -11,3 +11,7 @@ README.md export-ignore
 /tests/ export-ignore
 /vendor/ export-ignore
 /.idea/ export-ignore
+# Not part of the plugin: tests, GitHub Pages config, CI
+tests export-ignore
+_config.yml export-ignore
+.github export-ignore

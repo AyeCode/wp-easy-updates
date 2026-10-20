@@ -49,6 +49,13 @@ class External_Updates_Admin {
 	private $has_plugin_check_run;
 
 	/**
+	 * Version info fetched in this request, per type, replayed on later filter runs.
+	 *
+	 * @var array
+	 */
+	private $version_info_cache = array();
+
+	/**
 	 * Flag if theme update check has run.
 	 *
 	 * @since    1.0.5
@@ -63,6 +70,13 @@ class External_Updates_Admin {
 	 * @var bool
 	 */
 	private static $_upgrade = FALSE;
+
+	/**
+	 * API package links handed out by plugins_api / themes_api in this request, so an install can ask for a fresh one.
+	 *
+	 * @var array package url => array( item_id, license )
+	 */
+	private $install_packages = array();
 
 	/**
 	 * Initialize the class and set its properties.
@@ -167,6 +181,11 @@ class External_Updates_Admin {
 	public function sanitize_membership_domain( $domain ) {
 		$domain = strtolower( trim( sanitize_text_field( (string) $domain ) ) );
 
+		// Membership keys only exist on AyeCode's own stores; anything else (paths, ports, IPs) is refused.
+		if ( ! preg_match( '/^[a-z0-9.-]+$/', $domain ) || ! External_Updates_API::is_ours( 'https://' . $domain ) ) {
+			return '';
+		}
+
 		return $domain;
 	}
 
@@ -179,7 +198,7 @@ class External_Updates_Admin {
 		global $wpdb;
 
 		// security checks
-		if ( ! current_user_can( 'administrator' ) ) {
+		if ( ! current_user_can( is_multisite() ? 'manage_network_plugins' : 'update_plugins' ) ) {
 			wp_die();
 		}
 
@@ -283,6 +302,18 @@ class External_Updates_Admin {
 			return false;
 		}
 
+		// 2.0: AyeCode products activate through api.ayecode.io; the response also carries the site token.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::activate( $key, array( $update_id ) );
+			if ( ! is_wp_error( $licence_data ) ) {
+				if ( ! empty( $licence_data->success ) ) {
+					$this->store_activation_result( $package, $key, $licence_data );
+					return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
+				}
+				return array( 'error' => $this->api_activation_error( $licence_data ) );
+			}
+		}
+
 		// data to send in our API request
 		$api_params = array(
 			'edd_action' => 'activate_license',
@@ -358,6 +389,18 @@ class External_Updates_Admin {
 
 		$update_url = "https://" . $domain;
 		$error      = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
+
+		// 2.0: all item ids in one API call.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::activate( $key, $item_ids );
+			if ( ! is_wp_error( $licence_data ) ) {
+				if ( ! empty( $licence_data->success ) ) {
+					$this->store_activation_result( $domain, $key, $licence_data );
+					return array( 'success' => __( 'Licence activated!', 'external-updates' ) );
+				}
+				return array( 'error' => $this->api_activation_error( $licence_data ) );
+			}
+		}
 
 		foreach( $item_ids as $item_id ) {
 			// Data to send in our API request
@@ -440,6 +483,17 @@ class External_Updates_Admin {
 		$update_url = "https://" . $domain;
 		$error      = array( 'error' => __( 'Something went wrong!', 'external-updates' ) );
 
+		// 2.0: one API call; the key is removed locally either way.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::deactivate( $key );
+			if ( ! is_wp_error( $licence_data ) ) {
+				$keys = $this->get_keys();
+				unset( $keys[ $domain ] );
+				$this->update_keys( $keys );
+				return ! empty( $licence_data->success ) ? array( 'success' => __( 'Licence deactivated!', 'external-updates' ) ) : array( 'error' => __( 'Licence was not active on this site.', 'external-updates' ) );
+			}
+		}
+
 		foreach( $item_ids as $item_id ) {
 			// data to send in our API request
 			$api_params = array(
@@ -489,6 +543,50 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Store an API activation under the package (or membership domain) slug, without the site token.
+	 */
+	public function store_activation_result( $slug, $key, $licence_data ) {
+		$keys = $this->get_keys();
+		$licence_data->key = $key;
+		unset( $licence_data->site );
+		$keys[ $slug ] = $licence_data;
+		$this->update_keys( $keys );
+	}
+
+	/**
+	 * Human message for a failed API activation.
+	 */
+	public function api_activation_error( $licence_data ) {
+		$codes = array();
+		if ( ! empty( $licence_data->items ) ) {
+			foreach ( (array) $licence_data->items as $item ) {
+				$item = (array) $item;
+				if ( ! empty( $item['error'] ) ) {
+					$codes[] = $item['error'];
+				}
+			}
+		} elseif ( ! empty( $licence_data->error ) ) {
+			$codes[] = $licence_data->error;
+		}
+		$messages = array(
+			'expired'            => __( 'Licence key has expired.', 'external-updates' ),
+			'no_activations_left' => __( 'No activations left on this licence key.', 'external-updates' ),
+			'disabled'           => __( 'Licence key is disabled.', 'external-updates' ),
+			'revoked'            => __( 'Licence key is disabled.', 'external-updates' ),
+			'item_name_mismatch' => __( 'This licence key is for a different product.', 'external-updates' ),
+			'invalid_item_id'    => __( 'This licence key is for a different product.', 'external-updates' ),
+			'missing'            => __( 'Licence key is invalid', 'external-updates' ),
+			'invalid'            => __( 'Licence key is invalid', 'external-updates' ),
+		);
+		foreach ( $codes as $code ) {
+			if ( ( is_string( $code ) || is_int( $code ) ) && isset( $messages[ $code ] ) ) {
+				return $messages[ $code ];
+			}
+		}
+		return __( 'Something went wrong!', 'external-updates' );
+	}
+
+	/**
 	 * Save and update the licence key info.
 	 *
 	 * @since 1.0.1
@@ -532,6 +630,17 @@ class External_Updates_Admin {
 
 		if ( ! $update_url || ! $update_id ) {
 			return false;
+		}
+
+		// 2.0: one API call; the key is removed locally either way.
+		if ( External_Updates_API::is_ours( $update_url ) && ! External_Updates_API::is_down() ) {
+			$licence_data = External_Updates_API::deactivate( $key );
+			if ( ! is_wp_error( $licence_data ) ) {
+				$keys = $this->get_keys();
+				unset( $keys[ $package ] );
+				$this->update_keys( $keys );
+				return ! empty( $licence_data->success ) ? array( 'success' => __( 'Licence deactivated!', 'external-updates' ) ) : array( 'error' => __( 'Licence was not active on this site.', 'external-updates' ) );
+			}
 		}
 
 		// data to send in our API request
@@ -600,6 +709,35 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Remove wordpress.org's update offers for the plugins and themes WP Easy Updates manages. Core still asks
+	 * wordpress.org about them by folder name, so anyone who registers the same slug there could otherwise push their
+	 * own code to every site as an "update". The offer from the item's own source is added after this.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param object $_transient_data
+	 * @param string $type plugin|theme
+	 * @return object
+	 */
+	public function drop_wporg_offers( $_transient_data, $type ) {
+		if ( ! is_object( $_transient_data ) || empty( $_transient_data->response ) || ! is_array( $_transient_data->response ) ) {
+			return $_transient_data;
+		}
+		foreach ( $this->get_packages_for_update( $type ) as $file => $package ) {
+			if ( empty( $package['Update URL'] ) || ! isset( $_transient_data->response[ $file ] ) ) {
+				continue;
+			}
+			$offer = (array) $_transient_data->response[ $file ];
+			$host  = isset( $offer['package'] ) && is_string( $offer['package'] ) ? strtolower( (string) wp_parse_url( $offer['package'], PHP_URL_HOST ) ) : '';
+			$id    = isset( $offer['id'] ) && is_string( $offer['id'] ) ? $offer['id'] : '';
+			if ( 'downloads.wordpress.org' === $host || 0 === strpos( $id, 'w.org/' ) ) {
+				unset( $_transient_data->response[ $file ] );
+			}
+		}
+		return $_transient_data;
+	}
+
+	/**
 	 * Check for plugin updates by source.
 	 *
 	 * @param $_transient_data
@@ -616,16 +754,60 @@ class External_Updates_Admin {
 			return $_transient_data;
 		}
 
+		$_transient_data = $this->drop_wporg_offers( $_transient_data, $type );
+
+		// Core calls this filter more than once per page load (it sets the transient before and after its own
+		// request, and the force-check page calls wp_update_plugins() twice). One set of requests per page load.
+		if ( isset( $this->version_info_cache[ $type ] ) ) {
+			foreach ( $this->version_info_cache[ $type ] as $version_info ) {
+				$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+			}
+			return $_transient_data;
+		}
+		$this->version_info_cache[ $type ] = array();
+
 		$sources = $this->get_packages_for_update_by_src( $type );
 
 		if ( ! empty( $sources ) ) {
+			// 2.0: every AyeCode package on this site goes to api.ayecode.io in one request (site token, no keys on the wire).
+			// Falls back to the per-domain legacy request if the API is down or answers nothing.
+			$ours = array();
 			foreach ( $sources as $src => $packages ) {
+				if ( External_Updates_API::is_ours( $src ) ) {
+					$ours += $packages;
+				}
+			}
+			$api_done     = false;
+			$api_answered = array(); // slugs the API knows; any it does not still ask the product domain
+			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
+				$version_info = External_Updates_API::check_updates( $ours );
+				if ( ! empty( $version_info ) ) {
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+					$api_done = true;
+					foreach ( (array) $version_info as $slug => $info ) {
+						if ( is_object( $info ) && ! empty( $info->new_version ) ) {
+							$api_answered[ $slug ] = true;
+						}
+					}
+				}
+			}
+
+			foreach ( $sources as $src => $packages ) {
+				if ( $api_done && External_Updates_API::is_ours( $src ) ) {
+					$packages = array_diff_key( $packages, $api_answered );
+					if ( empty( $packages ) ) {
+						continue;
+					}
+				}
+
 				if ( strpos( $src, '://github.com/' ) !== false ) {
 					foreach ( $packages as $package ) {
 						$version_info = $this->api_request( 'github_version', $src, $package );
 
 						if ( ! empty( $version_info ) ) {
-							$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 						}
 					}
 				} else {
@@ -633,7 +815,7 @@ class External_Updates_Admin {
 					$edd_send_array = apply_filters( 'exup_edd_send_array', false );
 
 					// our own plugins should send as an array
-					if ( strpos( $src, 'wpgeodirectory.com' ) !== false || strpos( $src, 'wpinvoicing.com' ) !== false || strpos( $src, 'userswp.io' ) !== false ) {
+					if ( External_Updates_API::is_ours( $src ) ) {
 						$edd_send_array = true;
 					}
 
@@ -641,14 +823,16 @@ class External_Updates_Admin {
 						$version_info = $this->api_request( 'get_version', $src, $packages );
 
 						if ( ! empty( $version_info ) ) {
-							$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 						}
 					} else {
 						foreach ( $packages as $package ) {
 							$version_info = $this->api_request( 'get_version', $src, $package );
 
 							if ( ! empty( $version_info ) ) {
-								$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
+						$this->version_info_cache[ $type ][] = $version_info;
+						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 							}
 						}
 					}
@@ -817,6 +1001,35 @@ class External_Updates_Admin {
 		 * @since 1.1.6
 		 */
 		$api_params = apply_filters('wp_easy_updates_api_params',$api_params,$_src);
+
+		// 2.0: single requests for AyeCode products (install from an extensions screen, "View details") go to the
+		// API like the batched update check, so the package link is a signed API download for this site.
+		if ( External_Updates_API::is_ours( $_src ) && ! External_Updates_API::is_down() ) {
+			$packages = array();
+
+			if ( $single ) {
+				$packages[ $api_params['slug'] ] = $api_params;
+			} elseif ( ! empty( $api_params['update_array'] ) && is_array( $api_params['update_array'] ) ) {
+				foreach ( $api_params['update_array'] as $pslug => $p ) {
+					$packages[ $pslug ] = array(
+						'slug'    => $pslug,
+						'item_id' => isset( $p['item_id'] ) ? $p['item_id'] : 0,
+						'version' => isset( $p['version'] ) ? $p['version'] : '',
+						'beta'    => ! empty( $p['beta'] ),
+						'license' => isset( $p['license'] ) ? $p['license'] : '',
+					);
+				}
+			}
+
+			$request = ! empty( $packages ) ? External_Updates_API::check_updates( $packages, false ) : false;
+
+			if ( false !== $request ) {
+				$request = self::maybe_free_download( $request );
+				$request = self::maybe_add_version( $request, $api_params );
+
+				return self::unserialize_response( $request ); // already keyed by slug for both shapes
+			}
+		}
 
 		$request = wp_remote_post( $_src, array(
 			'timeout'   => 15,
@@ -987,6 +1200,39 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Unserialize data from a remote store into plain arrays and values only: never objects, which a malicious or
+	 * spoofed response could use for PHP object injection. Non-serialized values are returned as they are.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function safe_unserialize( $value ) {
+		if ( is_string( $value ) && is_serialized( $value ) ) {
+			return @unserialize( trim( $value ), array( 'allowed_classes' => false ) ); // phpcs:ignore
+		}
+		return $value;
+	}
+
+	/**
+	 * Arguments for an onclick JS call, each a JSON string with quotes and tags hex-escaped, so a value can never end
+	 * the string or the attribute it sits in.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public static function js_args( array $args ) {
+		$out = array();
+		foreach ( $args as $arg ) {
+			$out[] = wp_json_encode( (string) $arg, JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP );
+		}
+		return implode( ',', $out );
+	}
+
+	/**
 	 * Unserialize the api response if needed for sections.
 	 *
 	 * @param array $response The response from the update api request.
@@ -998,7 +1244,7 @@ class External_Updates_Admin {
 		if ( ! empty( $response ) && is_object( $response ) ) {
 			foreach ( $response as $rslug => $rplugin ) {
 				if ( isset( $response->{$rslug}->sections ) ) {
-					$response->{$rslug}->sections = maybe_unserialize( $response->{$rslug}->sections );
+					$response->{$rslug}->sections = self::safe_unserialize( $response->{$rslug}->sections );
 				}
 			}
 		}
@@ -1079,6 +1325,10 @@ class External_Updates_Admin {
 
 		$slug        = $args->slug;
 		$request_url = isset( $_REQUEST['update_url'] ) && is_string( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		// A link can carry any update_url, so only AyeCode's own stores are asked for an item that is not installed.
+		if ( $request_url && ! External_Updates_API::is_ours( $request_url ) ) {
+			$request_url = '';
+		}
 		$plugins     = $this->get_packages_for_update( 'plugin' );
 
 		if ( ! array_key_exists( $slug, $plugins ) && ! $request_url ) {
@@ -1103,7 +1353,8 @@ class External_Updates_Admin {
 		);
 
 		// Maybe activate
-		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+		// Activating from the request only inside core's install AJAX, which checks the "updates" nonce (never from a link).
+		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) && wp_doing_ajax() ) {
 			$activate = $this->activate_licence( $slug, $license, 'plugin', $update_url, $update_id );
 		}
 
@@ -1127,6 +1378,9 @@ class External_Updates_Admin {
 			return $data;
 		}
 
+		// An install from this screen downloads in the same request: remember which item its API link is for.
+		$this->remember_install_package( $data, $update_id, $license );
+
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
 		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
 			$_sections = array();
@@ -1139,7 +1393,7 @@ class External_Updates_Admin {
 		}
 
 		// Strip shortcodes from description
-		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+		if ( isset( $data->sections['description'] ) && is_string( $data->sections['description'] ) && '' !== $data->sections['description'] ) {
 			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
@@ -1147,7 +1401,7 @@ class External_Updates_Admin {
 		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
 		if ( isset( $data->banners ) ) {
-			$data->banners = maybe_unserialize( $data->banners );
+			$data->banners = self::safe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
@@ -1181,6 +1435,10 @@ class External_Updates_Admin {
 
 		$slug        = $args->slug;
 		$request_url = isset( $_REQUEST['update_url'] ) && is_string( $_REQUEST['update_url'] ) ? esc_url_raw( wp_unslash( $_REQUEST['update_url'] ) ) : '';
+		// A link can carry any update_url, so only AyeCode's own stores are asked for an item that is not installed.
+		if ( $request_url && ! External_Updates_API::is_ours( $request_url ) ) {
+			$request_url = '';
+		}
 		$themes      = $this->get_packages_for_update( 'theme' );
 
 		if ( ! array_key_exists( $slug, $themes ) && ! $request_url ) {
@@ -1205,7 +1463,8 @@ class External_Updates_Admin {
 		);
 
 		// Maybe activate
-		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) ) {
+		// Activating from the request only inside core's install AJAX, which checks the "updates" nonce (never from a link).
+		if ( ! empty( $request_url ) && ! empty( $license ) && ! empty( $_REQUEST['wpeu_activate'] ) && wp_doing_ajax() ) {
 			$activate = $this->activate_licence( $slug, $license, 'theme', $update_url, $update_id );
 		}
 
@@ -1229,6 +1488,9 @@ class External_Updates_Admin {
 			return $data;
 		}
 
+		// An install from this screen downloads in the same request: remember which item its API link is for.
+		$this->remember_install_package( $data, $update_id, $license );
+
 		// Convert sections into an associative array, since we're getting an object, but Core expects an array.
 		if ( isset( $data->sections ) && ! is_array( $data->sections ) ) {
 			$_sections = array();
@@ -1241,7 +1503,7 @@ class External_Updates_Admin {
 		}
 
 		// Strip shortcodes from description
-		if ( isset( $data->sections['description'] ) && ! empty( $data->sections['description'] ) ) {
+		if ( isset( $data->sections['description'] ) && is_string( $data->sections['description'] ) && '' !== $data->sections['description'] ) {
 			$data->sections['description'] = strip_shortcodes( $data->sections['description'] );
 		}
 
@@ -1249,7 +1511,7 @@ class External_Updates_Admin {
 		//$data->sections['licence key'] = '12345' . print_r( $this->get_keys(), true ); // @todo this would be a nice section to add
 
 		if ( isset( $data->banners ) ) {
-			$data->banners = maybe_unserialize( $data->banners );
+			$data->banners = self::safe_unserialize( $data->banners );
 		}
 
 		// Convert banners into an associative array, since we're getting an object, but Core expects an array.
@@ -1297,6 +1559,79 @@ class External_Updates_Admin {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Remember the item behind an API package link from plugins_api / themes_api, for fresh_package_options().
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param object $data    The plugins_api / themes_api result.
+	 * @param int    $item_id The item's "Update ID".
+	 * @param string $license The licence key sent with the request, if any.
+	 */
+	public function remember_install_package( $data, $item_id, $license ) {
+		if ( ! $item_id ) {
+			return;
+		}
+		foreach ( array( 'download_link', 'package' ) as $field ) {
+			if ( isset( $data->{$field} ) && External_Updates_API::is_api_package( $data->{$field} ) ) {
+				$this->install_packages[ $data->{$field} ] = array( 'item_id' => absint( $item_id ), 'license' => (string) $license );
+			}
+		}
+	}
+
+	/**
+	 * Swap an api.ayecode.io package link for a fresh one just before WordPress downloads it. API links only live a
+	 * few minutes but core keeps update offers for up to 12 hours. Runs for single, bulk and automatic updates
+	 * (hook_extra has the plugin file or theme slug) and for installs from plugins_api / themes_api results in this
+	 * request. If the API call fails the original package is kept and the usual download error is shown.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $options The WP_Upgrader::run() options.
+	 * @return array
+	 */
+	public function fresh_package_options( $options ) {
+		if ( ! is_array( $options ) || empty( $options['package'] ) || ! External_Updates_API::is_api_package( $options['package'] ) ) {
+			return $options;
+		}
+
+		$extra   = isset( $options['hook_extra'] ) && is_array( $options['hook_extra'] ) ? $options['hook_extra'] : array();
+		$item_id = 0;
+		$license = '';
+		$beta    = false;
+
+		if ( ! empty( $extra['plugin'] ) || ! empty( $extra['theme'] ) ) {
+			$type     = ! empty( $extra['plugin'] ) ? 'plugin' : 'theme';
+			$slug     = $extra[ $type ];
+			$packages = $this->get_packages_for_update( $type );
+
+			if ( ! is_string( $slug ) || empty( $packages[ $slug ]['Update ID'] ) ) {
+				return $options;
+			}
+
+			// As the update check sends it (get_packages_for_update_by_src()).
+			$keys    = $this->get_keys();
+			$item_id = absint( $packages[ $slug ]['Update ID'] );
+			$license = isset( $keys[ $slug ]->key ) ? $keys[ $slug ]->key : '';
+			$beta    = ! empty( $packages[ $slug ]['beta'] );
+		} elseif ( isset( $this->install_packages[ $options['package'] ] ) ) {
+			$item_id = $this->install_packages[ $options['package'] ]['item_id'];
+			$license = $this->install_packages[ $options['package'] ]['license'];
+		}
+
+		if ( ! $item_id ) {
+			return $options;
+		}
+
+		$package = External_Updates_API::download_link( $item_id, $license, $beta );
+
+		if ( ! is_wp_error( $package ) ) {
+			$options['package'] = $package;
+		}
+
+		return $options;
 	}
 
 	/**
@@ -1709,27 +2044,27 @@ class External_Updates_Admin {
 				// free
 				if ( $button_args['licensing'] === false || ( isset( $button_args['price'] ) && $button_args['price'] == '0.00' ) ) {
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$licence    = 'free';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_plugin(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && empty( $button_args['license'] ) ) { // needs licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_licence_popup(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","plugin"); return false;';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, 'plugin' ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && $button_args['license'] ) { // has licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
-					$licence    = isset( $button_args['license'] ) ? esc_attr( $button_args['license'] ) : 'license'; // @todo will this always pass a esc_attr() filter?
+					$licence    = isset( $button_args['license'] ) ? sanitize_text_field( $button_args['license'] ) : 'license';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_plugin(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_plugin(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				}
 			}
 		}
@@ -1740,27 +2075,27 @@ class External_Updates_Admin {
 				// free
 				if ( $button_args['licensing'] === false || ( isset( $button_args['price'] ) && $button_args['price'] == '0.00' ) && ! empty( $button_args['update_url'] ) ) {
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$licence    = 'free';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_theme(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_theme(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && empty( $button_args['license'] ) ) { // needs licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_licence_popup(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","theme"); return false;';
+					$button_args['onclick'] = 'wpeu_licence_popup(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, 'theme' ) ) . '); return false;';
 				} elseif ( $button_args['licensing'] && $button_args['license'] ) { // has licence
 					$button_args['button_text'] = __( 'Install', 'external-updates' );
-					$slug       = isset( $button_args['slug'] ) ? esc_attr( $button_args['slug'] ) : '';
+					$slug       = isset( $button_args['slug'] ) ? sanitize_text_field( $button_args['slug'] ) : '';
 					$nonce      = wp_create_nonce( 'updates' );
 					$item_id    = isset( $button_args['id'] ) ? absint( $button_args['id'] ) : '';
-					$licence    = isset( $button_args['license'] ) ? esc_attr( $button_args['license'] ) : 'license'; // @todo will this always pass a esc_attr() filter?
+					$licence    = isset( $button_args['license'] ) ? sanitize_text_field( $button_args['license'] ) : 'license';
 					$update_url = isset( $button_args['update_url'] ) ? esc_url_raw( $button_args['update_url'] ) : '';
-					$button_args['onclick'] = 'wpeu_install_theme(this,"' . $slug . '","' . $nonce . '","' . $update_url . '","' . $item_id . '","' . $licence . '"); return false;';
+					$button_args['onclick'] = 'wpeu_install_theme(this,' . self::js_args( array( $slug, $nonce, $update_url, $item_id, $licence ) ) . '); return false;';
 				}
 			}
 		}

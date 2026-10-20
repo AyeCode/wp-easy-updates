@@ -29,3 +29,7 @@
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
+
+// The site token and the API state go; licence keys (exup_keys) stay, so a reinstall keeps the site licensed.
+delete_option( 'exup_site_token' );
+delete_option( 'exup_api_down_until' );
