@@ -201,6 +201,10 @@ $chk( 'update screen: still says where the key goes', false !== strpos( $msg, 'L
 $answer = array( 'code' => 403, 'body' => array( 'error' => 'expired', 'message' => 'Your <b>licence</b> has expired.' ) );
 $msg = $run( true );
 $chk( 'bulk update: shows this item\'s reason, escaped', false !== strpos( $msg, 'Your &lt;b&gt;licence&lt;/b&gt; has expired.' ) && false === strpos( $msg, $reason ), $msg );
+$answer = array( 'code' => 403, 'body' => array( 'error' => 'not_entitled', 'message' => 'Free a seat on your account dashboard (https://account.wpgeodirectory.com/) or see https://evil.example/x.' ) );
+$msg = $run();
+$chk( 'our address becomes a new-tab link', false !== strpos( $msg, '(<a href="https://account.wpgeodirectory.com/" target="_blank" rel="noopener noreferrer">https://account.wpgeodirectory.com/</a>)' ), $msg );
+$chk( 'other addresses stay plain text', false !== strpos( $msg, 'see https://evil.example/x.' ) && false === strpos( $msg, 'href="https://evil' ) );
 $fail = function () { return new WP_Error( 'http_request_failed', 'timed out' ); };
 add_filter( 'pre_http_request', $fail, 20 );
 $msg = $run();
