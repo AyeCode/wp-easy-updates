@@ -4,7 +4,7 @@ Donate link: https://ayecode.io/
 Tags: EDD, github, updates, external updates, development
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -71,7 +71,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 2.0.1 - TBD =
+= 2.0.1 - 2026-11-05 =
 * A failed AyeCode update now says why (licence not activated on this site, expired, disabled) instead of always asking for a licence key - FIXED
 * An update offered without a download link asks the licence server again when the update starts, so a key activated since the last check works straight away - FIXED
 * The licence message also shows on single and automatic updates, not only bulk updates - FIXED
