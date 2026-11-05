@@ -71,6 +71,11 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 2.0.1 - TBD =
+* A failed AyeCode update now says why (licence not activated on this site, expired, disabled) instead of always asking for a licence key - FIXED
+* An update offered without a download link asks the licence server again when the update starts, so a key activated since the last check works straight away - FIXED
+* The licence message also shows on single and automatic updates, not only bulk updates - FIXED
+
 = 2.0.0 - 2026-10-13 =
 * AyeCode products (GeoDirectory, UsersWP, GetPaid) now check for updates, activate and deactivate licences through api.ayecode.io in one batched request - CHANGED
 * Sites connected with AyeCode Connect use its site token instead of sending licence keys on every update check - SECURITY
