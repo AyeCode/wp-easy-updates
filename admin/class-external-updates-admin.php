@@ -79,6 +79,22 @@ class External_Updates_Admin {
 	private $install_packages = array();
 
 	/**
+	 * Why the API refused a download link for the item being updated now (its own message, e.g. not activated for
+	 * this domain, expired). Set by fresh_package_options() and shown by update_errors() in place of the generic text.
+	 *
+	 * @var string
+	 */
+	private $package_error = '';
+
+	/**
+	 * Core's no_package string per upgrader, before update_errors() adds to it, so a bulk update can show each
+	 * item's own reason.
+	 *
+	 * @var array spl_object_hash => string
+	 */
+	private $no_package_base = array();
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @since    1.0.0
@@ -1587,13 +1603,24 @@ class External_Updates_Admin {
 	 * (hook_extra has the plugin file or theme slug) and for installs from plugins_api / themes_api results in this
 	 * request. If the API call fails the original package is kept and the usual download error is shown.
 	 *
+	 * An update offer with no package (the update check found no live licence for this site) also asks: the key may
+	 * have been activated since, and if not the API says why, which update_errors() shows instead of the generic text.
+	 *
 	 * @since 2.0.0
+	 * @since 2.0.1 Asks for a link when the offer has no package, and keeps the API's reason for a refusal.
 	 *
 	 * @param array $options The WP_Upgrader::run() options.
 	 * @return array
 	 */
 	public function fresh_package_options( $options ) {
-		if ( ! is_array( $options ) || empty( $options['package'] ) || ! External_Updates_API::is_api_package( $options['package'] ) ) {
+		$this->package_error = '';
+
+		if ( ! is_array( $options ) ) {
+			return $options;
+		}
+
+		$no_package = empty( $options['package'] );
+		if ( ! $no_package && ! External_Updates_API::is_api_package( $options['package'] ) ) {
 			return $options;
 		}
 
@@ -1611,12 +1638,17 @@ class External_Updates_Admin {
 				return $options;
 			}
 
+			// An empty package is only ours to ask about when the item updates from an AyeCode store.
+			if ( $no_package && ( empty( $packages[ $slug ]['Update URL'] ) || ! External_Updates_API::is_ours( $packages[ $slug ]['Update URL'] ) || External_Updates_API::is_down() ) ) {
+				return $options;
+			}
+
 			// As the update check sends it (get_packages_for_update_by_src()).
 			$keys    = $this->get_keys();
 			$item_id = absint( $packages[ $slug ]['Update ID'] );
 			$license = isset( $keys[ $slug ]->key ) ? $keys[ $slug ]->key : '';
 			$beta    = ! empty( $packages[ $slug ]['beta'] );
-		} elseif ( isset( $this->install_packages[ $options['package'] ] ) ) {
+		} elseif ( ! $no_package && isset( $this->install_packages[ $options['package'] ] ) ) {
 			$item_id = $this->install_packages[ $options['package'] ]['item_id'];
 			$license = $this->install_packages[ $options['package'] ]['license'];
 		}
@@ -1629,6 +1661,10 @@ class External_Updates_Admin {
 
 		if ( ! is_wp_error( $package ) ) {
 			$options['package'] = $package;
+		} elseif ( 'api_error' === $package->get_error_code() ) {
+			// A refusal from the API (403/404) carries a message written for the customer. Transport and token
+			// errors do not, so those keep the generic text.
+			$this->package_error = (string) $package->get_error_message();
 		}
 
 		return $options;
@@ -1644,47 +1680,84 @@ class External_Updates_Admin {
 	 * @param bool $false   Whether to bail without returning the package. Default false.
 	 * @param string $src   The package file url.
 	 * @param object $Uthis The WP_Upgrader instance.
+	 * @param array $hook_extra The upgrader's hook_extra (WP 5.5+): names the plugin or theme when the skin does not
+	 *                          (single and automatic updates; only bulk skins carry plugin_info).
 	 *
 	 * @return mixed
 	 */
-	public function update_errors( $false, $src, $Uthis ) {
+	public function update_errors( $false, $src, $Uthis, $hook_extra = array() ) {
 		self::$_upgrade = true; // set doing upgrade
 
-		// make sure we are not adding the message more than once one multiple updates.
-		if ( isset( $Uthis->strings['no_package'] ) && strpos( $Uthis->strings['no_package'], ' > ' ) !== false ) {
+		if ( ! is_object( $Uthis ) || ! isset( $Uthis->strings['no_package'] ) ) {
 			return $false;
 		}
 
-		if ( isset( $Uthis->skin->plugin_info['Update ID'] ) ) {// check if we are dealing with a plugin that requires a licence key
-			$plugin_name = isset( $Uthis->skin->plugin_info['Name'] ) ? $Uthis->skin->plugin_info['Name'] : __( 'Plugin Name', 'external-updates' );
+		$plugin_info = isset( $Uthis->skin->plugin_info ) && is_array( $Uthis->skin->plugin_info ) ? $Uthis->skin->plugin_info : array();
+		if ( empty( $plugin_info['Update ID'] ) && is_array( $hook_extra ) && ! empty( $hook_extra['plugin'] ) && is_string( $hook_extra['plugin'] ) ) {
+			$packages    = $this->get_packages_for_update( 'plugin' );
+			$plugin_info = isset( $packages[ $hook_extra['plugin'] ] ) ? $packages[ $hook_extra['plugin'] ] : array();
+		}
+		$theme_info = isset( $Uthis->skin ) && ! empty( $Uthis->skin->theme_info ) ? $Uthis->skin->theme_info : null;
+		if ( ! $theme_info && is_array( $hook_extra ) && ! empty( $hook_extra['theme'] ) && is_string( $hook_extra['theme'] ) ) {
+			$theme_info = wp_get_theme( $hook_extra['theme'] );
+		}
 
-			if ( is_network_admin() ) {
-				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' ' . wp_sprintf( __( 'A licence key is required to update, please enter it under the main site: Plugins > %s > Licence key.', 'external-updates' ), $plugin_name );
+		if ( ! empty( $plugin_info['Update ID'] ) ) {// check if we are dealing with a plugin that requires a licence key
+			$name = ! empty( $plugin_info['Name'] ) ? $plugin_info['Name'] : __( 'Plugin Name', 'external-updates' );
+			$type = 'plugin';
+		} elseif ( $theme_info && $theme_info->exists() && $theme_info->get( "Update ID" ) ) {// check if we are dealing with a theme that requires a licence key
+			$name = ( $theme_info->get("Name") ) ? $theme_info->get("Name") : __( 'Theme Name', 'external-updates' );
+			$type = 'theme';
+		} else {
+			return $false;
+		}
 
-			} else {
-				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' ' . wp_sprintf( __( 'A licence key is required to update, please enter it under: Plugins > %s > Licence key.', 'external-updates' ), $plugin_name );
-			}
+		// Rebuilt from core's own string for every item, so in a bulk update each one shows its own reason.
+		$id = spl_object_hash( $Uthis );
+		if ( ! isset( $this->no_package_base[ $id ] ) ) {
+			$this->no_package_base[ $id ] = $Uthis->strings['no_package'];
+		}
+		$Uthis->strings['no_package'] = $this->no_package_base[ $id ] . ' ' . $this->no_package_message( $type, $name );
 
-			// if it gives a package url but fails to download then show a link to the package which will probably give a reason for the first instance only so we replace the links on the fly with JS for the rest.
-			if ( ! empty( $src ) ) {
-				$Uthis->strings['download_failed'] =  wp_sprintf( __( '%s ( more info ) %s', 'external-updates' ), "<a class='wpeu-download-failed-error' href='" . esc_url( $src ) . "' target='_blank' rel='noopener noreferrer'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
-			}
-		} elseif ( isset( $Uthis->skin ) && ! empty( $Uthis->skin->theme_info ) && $Uthis->skin->theme_info->get( "Update ID" ) ) {// check if we are dealing with a theme that requires a licence key
-			$plugin_name = ( $Uthis->skin->theme_info->get("Name") ) ? $Uthis->skin->theme_info->get("Name") : __( 'Theme Name', 'external-updates' );
-
-			if ( is_network_admin() ) {
-				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' ' . wp_sprintf( __( 'A licence key is required to update, please enter it under the main site: Themes > %s > Theme Details > Licence key.', 'external-updates' ), $plugin_name );
-			} else {
-				$Uthis->strings['no_package'] = $Uthis->strings['no_package'] . ' ' . wp_sprintf( __( 'A licence key is required to update, please enter it under: Themes > %s > Theme Details > Licence key.', 'external-updates' ), $plugin_name );
-			}
-
-			// if it gives a package url but fails to download then show a link to the package which will probably give a reason for the first instance only so we replace the links on the fly with JS for the rest.
-			if ( ! empty( $src ) ) {
-				$Uthis->strings['download_failed'] = wp_sprintf( __( '%s ( more info ) %s', 'external-updates' ), "<a class='wpeu-download-failed-error' href='" . esc_url( $src ) . "' target='_blank' rel='noopener noreferrer'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
-			}
+		// if it gives a package url but fails to download then show a link to the package which will probably give a reason for the first instance only so we replace the links on the fly with JS for the rest.
+		if ( ! empty( $src ) && isset( $Uthis->strings['download_failed'] ) && strpos( $Uthis->strings['download_failed'], 'wpeu-download-failed-error' ) === false ) {
+			$Uthis->strings['download_failed'] = wp_sprintf( __( '%s ( more info ) %s', 'external-updates' ), "<a class='wpeu-download-failed-error' href='" . esc_url( $src ) . "' target='_blank' rel='noopener noreferrer'>","</a>" ) .' - ' . $Uthis->strings['download_failed'];
 		}
 
 		return $false;
+	}
+
+	/**
+	 * The text added to core's "Update package not available." for a licensed plugin or theme: the API's reason when
+	 * it refused a download link for this item (not activated on this domain, expired, disabled), else the generic
+	 * ask for a licence key. Either way it says where the key is entered.
+	 *
+	 * @since 2.0.1
+	 *
+	 * @param string $type 'plugin' or 'theme'.
+	 * @param string $name The plugin or theme name.
+	 * @return string
+	 */
+	private function no_package_message( $type, $name ) {
+		$network = is_network_admin();
+
+		if ( 'theme' === $type ) {
+			$where = $network
+				? wp_sprintf( __( 'Themes > %s > Theme Details > Licence key (on the main site)', 'external-updates' ), $name )
+				: wp_sprintf( __( 'Themes > %s > Theme Details > Licence key', 'external-updates' ), $name );
+		} else {
+			$where = $network
+				? wp_sprintf( __( 'Plugins > %s > Licence key (on the main site)', 'external-updates' ), $name )
+				: wp_sprintf( __( 'Plugins > %s > Licence key', 'external-updates' ), $name );
+		}
+
+		if ( '' !== $this->package_error ) {
+			/* translators: 1: the reason the licence server gave, 2: where the licence key is entered */
+			return wp_sprintf( __( '%1$s The licence key is under: %2$s.', 'external-updates' ), esc_html( $this->package_error ), $where );
+		}
+
+		/* translators: %s: where the licence key is entered */
+		return wp_sprintf( __( 'A licence key is required to update, please enter it under: %s.', 'external-updates' ), $where );
 	}
 
 	/**

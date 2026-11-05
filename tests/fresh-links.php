@@ -162,6 +162,53 @@ $chk( 'install, no token: sends the key from the request', $h && 'INSTALL-KEY' =
 $use_token = true;
 remove_filter( 'upgrader_pre_download', $stop, 1 );
 
+// 8. 2.0.1: an offer with no package (no live licence on this site at check time) asks the API too, and a refusal
+// shows the API's reason instead of "A licence key is required".
+add_filter( 'pre_option_exup_api_down_until', '__return_zero' ); // section 5 set the down flag
+$reason = 'Your license has not been activated for this domain, please activate it first.';
+$answer = array( 'code' => 403, 'body' => array( 'error' => 'not_entitled', 'message' => $reason ) );
+$hits = array();
+$o = apply_filters( 'upgrader_package_options', array( 'package' => '', 'hook_extra' => array( 'plugin' => $file ) ) );
+$chk( 'empty package: asks /v1/download-link', count( $hits ) === 1 && false !== strpos( $hits[0]['url'], '/v1/download-link' ) );
+$chk( 'empty package, refused: package stays empty', '' === $o['package'] );
+$hits = array();
+$o = apply_filters( 'upgrader_package_options', array( 'package' => '', 'hook_extra' => array( 'plugin' => 'hello-dolly/hello.php' ) ) );
+$chk( 'empty package, not an AyeCode item: no API call', ! $hits && '' === $o['package'] );
+$answer = array( 'code' => 200, 'body' => array( 'package' => $fresh ) );
+$o = apply_filters( 'upgrader_package_options', array( 'package' => '', 'hook_extra' => array( 'plugin' => $file ) ) );
+$chk( 'empty package, key activated since: gets the fresh link', $o['package'] === $fresh );
+
+// Real single update screen (Plugin_Upgrader_Skin), offer without a package.
+$offer = (object) array( 'slug' => 'geodir-compare', 'plugin' => $file, 'new_version' => '99.0', 'package' => '' );
+$tr = function () use ( $file, $offer ) { $t = new stdClass(); $t->last_checked = time(); $t->checked = array(); $t->response = array( $file => $offer ); return $t; };
+add_filter( 'site_transient_update_plugins', $tr );
+$run = function ( $bulk = false ) use ( $file ) {
+	ob_start();
+	if ( $bulk ) {
+		$up = new Plugin_Upgrader( new Bulk_Plugin_Upgrader_Skin() );
+		$up->bulk_upgrade( array( $file ) );
+	} else {
+		$up = new Plugin_Upgrader( new Plugin_Upgrader_Skin( array( 'plugin' => $file ) ) );
+		$up->upgrade( $file );
+	}
+	ob_end_clean();
+	return $up->strings['no_package'];
+};
+$answer = array( 'code' => 403, 'body' => array( 'error' => 'not_entitled', 'message' => $reason ) );
+$msg = $run();
+$chk( 'update screen: shows the API reason', false !== strpos( $msg, $reason ) && false === strpos( $msg, 'is required to update' ), $msg );
+$chk( 'update screen: still says where the key goes', false !== strpos( $msg, 'Licence key' ) );
+$answer = array( 'code' => 403, 'body' => array( 'error' => 'expired', 'message' => 'Your <b>licence</b> has expired.' ) );
+$msg = $run( true );
+$chk( 'bulk update: shows this item\'s reason, escaped', false !== strpos( $msg, 'Your &lt;b&gt;licence&lt;/b&gt; has expired.' ) && false === strpos( $msg, $reason ), $msg );
+$fail = function () { return new WP_Error( 'http_request_failed', 'timed out' ); };
+add_filter( 'pre_http_request', $fail, 20 );
+$msg = $run();
+remove_filter( 'pre_http_request', $fail, 20 );
+$chk( 'API unreachable: generic licence key text', false !== strpos( $msg, 'A licence key is required to update' ), $msg );
+remove_filter( 'site_transient_update_plugins', $tr );
+remove_filter( 'pre_option_exup_api_down_until', '__return_zero' );
+
 remove_filter( 'pre_http_request', $spy, 10 );
 remove_filter( 'wp_easy_updates_api_base', $base_filter );
 remove_filter( 'pre_option_ayecode_connect_site_token', $tok );
