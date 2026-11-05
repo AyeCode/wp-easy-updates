@@ -1728,6 +1728,29 @@ class External_Updates_Admin {
 	}
 
 	/**
+	 * Turns AyeCode store addresses in already escaped text into links that open in a new tab (the bulk update
+	 * screen runs in an iframe). Only https URLs on our own domains; everything else stays plain text.
+	 *
+	 * @since 2.0.2
+	 *
+	 * @param string $escaped Text that has been through esc_html().
+	 * @return string
+	 */
+	private static function link_our_urls( $escaped ) {
+		return preg_replace_callback(
+			'#https://[a-z0-9.-]+(?:/[^\s<>"\'()]*)?#i',
+			function ( $m ) {
+				$url = rtrim( $m[0], '.,;:!?' );
+				if ( ! External_Updates_API::is_ours( $url ) ) {
+					return $m[0];
+				}
+				return '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $url ) . '</a>' . substr( $m[0], strlen( $url ) );
+			},
+			$escaped
+		);
+	}
+
+	/**
 	 * The text added to core's "Update package not available." for a licensed plugin or theme: the API's reason when
 	 * it refused a download link for this item (not activated on this domain, expired, disabled), else the generic
 	 * ask for a licence key. Either way it says where the key is entered.
@@ -1753,7 +1776,7 @@ class External_Updates_Admin {
 
 		if ( '' !== $this->package_error ) {
 			/* translators: 1: the reason the licence server gave, 2: where the licence key is entered */
-			return wp_sprintf( __( '%1$s The licence key is under: %2$s.', 'external-updates' ), esc_html( $this->package_error ), $where );
+			return wp_sprintf( __( '%1$s The licence key is under: %2$s.', 'external-updates' ), self::link_our_urls( esc_html( $this->package_error ) ), $where );
 		}
 
 		/* translators: %s: where the licence key is entered */

@@ -71,6 +71,9 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
+= 2.0.2 - TBD =
+* The account address in an update error is a link that opens in a new tab - CHANGED
+
 = 2.0.1 - 2026-11-05 =
 * A failed AyeCode update now says why (licence not activated on this site, expired, disabled) instead of always asking for a licence key - FIXED
 * An update offered without a download link asks the licence server again when the update starts, so a key activated since the last check works straight away - FIXED
