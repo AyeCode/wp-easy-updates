@@ -131,10 +131,19 @@ class External_Updates_API {
 		if ( $record_versions ) {
 			$body['versions'] = $versions;
 		}
+		// 2.0.2: language packs. The site's languages and the date of each translation it already has for these
+		// plugins, so the API only offers newer packs (as core does with wordpress.org).
+		$locales = self::site_locales();
+		if ( $locales ) {
+			$body['locales']      = $locales;
+			$body['translations'] = self::installed_translations( $packages, $locales );
+		}
+		self::$translations = array();
 		$data = self::request( '/v1/updates', $body );
 		if ( is_wp_error( $data ) || empty( $data['packages'] ) ) {
 			return false;
 		}
+		self::$translations = isset( $data['translations'] ) ? self::clean_translations( $data['translations'] ) : array();
 		if ( ! empty( $data['site']['token'] ) ) {
 			self::set_token( $data['site']['token'] );
 		}
@@ -144,6 +153,98 @@ class External_Updates_API {
 				continue; // malformed entry: skip it rather than fatal the update check
 			}
 			$out->{$slug} = (object) $info;
+		}
+		return $out;
+	}
+
+	/**
+	 * Language packs the API offered in the last update check, as WordPress expects them in the update_plugins
+	 * transient's `translations` list. Read by External_Updates_Admin::merge_translations().
+	 *
+	 * @since 2.0.2
+	 * @var array
+	 */
+	public static $translations = array();
+
+	/**
+	 * The site's languages, as core sends them to wordpress.org (installed languages, filtered by
+	 * plugins_update_check_locales), plus the site and user locale. No English.
+	 *
+	 * @since 2.0.2
+	 * @return string[]
+	 */
+	public static function site_locales() {
+		$locales = array_values( get_available_languages() );
+		$locales = (array) apply_filters( 'plugins_update_check_locales', $locales );
+		$locales[] = get_locale();
+		if ( function_exists( 'get_user_locale' ) ) {
+			$locales[] = get_user_locale();
+		}
+		$out = array();
+		foreach ( $locales as $locale ) {
+			if ( is_string( $locale ) && 'en_US' !== $locale && preg_match( '/^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]+)?$/', $locale ) && ! in_array( $locale, $out, true ) ) {
+				$out[] = $locale;
+			}
+		}
+		return array_slice( $out, 0, 5 );
+	}
+
+	/**
+	 * PO-Revision-Date of the installed translations of these packages, keyed by text domain then locale.
+	 *
+	 * @since 2.0.2
+	 * @param array    $packages slug => package array (the plugin headers are merged in, so TextDomain is there).
+	 * @param string[] $locales  The site's languages.
+	 * @return array
+	 */
+	public static function installed_translations( array $packages, array $locales ) {
+		if ( ! function_exists( 'wp_get_installed_translations' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/translation-install.php';
+		}
+		$installed = function_exists( 'wp_get_installed_translations' ) ? wp_get_installed_translations( 'plugins' ) : array();
+		$out       = array();
+		foreach ( $packages as $p ) {
+			$domain = isset( $p['TextDomain'] ) ? (string) $p['TextDomain'] : '';
+			if ( '' === $domain || empty( $installed[ $domain ] ) ) {
+				continue;
+			}
+			foreach ( $locales as $locale ) {
+				if ( ! empty( $installed[ $domain ][ $locale ]['PO-Revision-Date'] ) ) {
+					$out[ $domain ][ $locale ] = (string) $installed[ $domain ][ $locale ]['PO-Revision-Date'];
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Keeps only well formed plugin pack offers whose package is an API link.
+	 *
+	 * @since 2.0.2
+	 * @param mixed $list The `translations` list from the API.
+	 * @return array
+	 */
+	public static function clean_translations( $list ) {
+		$out = array();
+		if ( ! is_array( $list ) ) {
+			return $out;
+		}
+		foreach ( $list as $t ) {
+			if ( ! is_array( $t ) || empty( $t['slug'] ) || empty( $t['language'] ) || empty( $t['package'] ) ) {
+				continue;
+			}
+			if ( ! is_string( $t['slug'] ) || ! preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $t['slug'] ) || ! is_string( $t['language'] ) || ! preg_match( '/^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]+)?$/', $t['language'] ) || ! self::is_api_package( $t['package'] ) ) {
+				continue;
+			}
+			$out[] = array(
+				'type'       => 'plugin',
+				'slug'       => $t['slug'],
+				'language'   => $t['language'],
+				'version'    => isset( $t['version'] ) && is_scalar( $t['version'] ) ? (string) $t['version'] : '',
+				'updated'    => isset( $t['updated'] ) && is_scalar( $t['updated'] ) ? (string) $t['updated'] : '',
+				'package'    => $t['package'],
+				'autoupdate' => ! empty( $t['autoupdate'] ),
+			);
 		}
 		return $out;
 	}

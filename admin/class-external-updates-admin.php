@@ -56,6 +56,14 @@ class External_Updates_Admin {
 	private $version_info_cache = array();
 
 	/**
+	 * Language packs from the API's last update check, kept for the rest of the page load like version_info_cache.
+	 *
+	 * @since 2.0.2
+	 * @var array|null
+	 */
+	private $translations_cache = null;
+
+	/**
 	 * Flag if theme update check has run.
 	 *
 	 * @since    1.0.5
@@ -778,7 +786,7 @@ class External_Updates_Admin {
 			foreach ( $this->version_info_cache[ $type ] as $version_info ) {
 				$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
 			}
-			return $_transient_data;
+			return $this->merge_translations( $_transient_data, $type );
 		}
 		$this->version_info_cache[ $type ] = array();
 
@@ -797,6 +805,9 @@ class External_Updates_Admin {
 			$api_answered = array(); // slugs the API knows; any it does not still ask the product domain
 			if ( ! empty( $ours ) && ! External_Updates_API::is_down() ) {
 				$version_info = External_Updates_API::check_updates( $ours );
+				if ( 'plugin' === $type ) {
+					$this->translations_cache = External_Updates_API::$translations;
+				}
 				if ( ! empty( $version_info ) ) {
 						$this->version_info_cache[ $type ][] = $version_info;
 						$_transient_data = $this->process_update_transient_data( $version_info, $_transient_data, $type );
@@ -856,6 +867,38 @@ class External_Updates_Admin {
 			}
 		}
 
+		return $this->merge_translations( $_transient_data, $type );
+	}
+
+	/**
+	 * Adds the API's language packs to the update_plugins transient, where core's Language_Pack_Upgrader finds and
+	 * installs them (automatically, or from Dashboard > Updates). A wordpress.org entry for the same text domain and
+	 * language is removed first, or core would install that one over ours.
+	 *
+	 * @since 2.0.2
+	 *
+	 * @param object $_transient_data The update_plugins transient.
+	 * @param string $type            'plugin' or 'theme'.
+	 * @return object
+	 */
+	public function merge_translations( $_transient_data, $type ) {
+		if ( 'plugin' !== $type || ! is_object( $_transient_data ) || empty( $this->translations_cache ) ) {
+			return $_transient_data;
+		}
+		$ours = array();
+		foreach ( $this->translations_cache as $t ) {
+			$ours[ $t['slug'] . '|' . $t['language'] ] = $t;
+		}
+		$list = isset( $_transient_data->translations ) && is_array( $_transient_data->translations ) ? $_transient_data->translations : array();
+		$kept = array();
+		foreach ( $list as $t ) {
+			$t = (array) $t;
+			if ( isset( $t['slug'], $t['language'] ) && isset( $ours[ $t['slug'] . '|' . $t['language'] ] ) ) {
+				continue;
+			}
+			$kept[] = $t;
+		}
+		$_transient_data->translations = array_merge( $kept, array_values( $ours ) );
 		return $_transient_data;
 	}
 
