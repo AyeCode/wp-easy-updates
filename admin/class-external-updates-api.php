@@ -131,7 +131,7 @@ class External_Updates_API {
 		if ( $record_versions ) {
 			$body['versions'] = $versions;
 		}
-		// 2.1.0: language packs. The site's languages and the date of each translation it already has for these
+		// 2.0.2: language packs. The site's languages and the date of each translation it already has for these
 		// plugins, so the API only offers newer packs (as core does with wordpress.org).
 		$locales = self::site_locales();
 		if ( $locales ) {
@@ -161,7 +161,7 @@ class External_Updates_API {
 	 * Language packs the API offered in the last update check, as WordPress expects them in the update_plugins
 	 * transient's `translations` list. Read by External_Updates_Admin::merge_translations().
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 * @var array
 	 */
 	public static $translations = array();
@@ -170,7 +170,7 @@ class External_Updates_API {
 	 * The site's languages, as core sends them to wordpress.org (installed languages, filtered by
 	 * plugins_update_check_locales), plus the site and user locale. No English.
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 * @return string[]
 	 */
 	public static function site_locales() {
@@ -192,7 +192,7 @@ class External_Updates_API {
 	/**
 	 * PO-Revision-Date of the installed translations of these packages, keyed by text domain then locale.
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 * @param array    $packages slug => package array (the plugin headers are merged in, so TextDomain is there).
 	 * @param string[] $locales  The site's languages.
 	 * @return array
@@ -220,7 +220,7 @@ class External_Updates_API {
 	/**
 	 * Keeps only well formed plugin pack offers whose package is an API link.
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 * @param mixed $list The `translations` list from the API.
 	 * @return array
 	 */

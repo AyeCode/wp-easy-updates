@@ -1,5 +1,5 @@
 <?php
-// wp eval-file: checks for WPEU 2.1 language packs (#24 in ayecode-platform): the update check sends the site's
+// wp eval-file: checks for WPEU 2.0.2 language packs (#24 in ayecode-platform): the update check sends the site's
 // languages, the API's packs land in the update_plugins transient's `translations`, a wordpress.org pack for the same
 // text domain and language is dropped, bad offers are ignored, and pack downloads are left to core.
 // Loads this checkout's plugin when WP Easy Updates is not active. All HTTP is answered by a pre_http_request mock;

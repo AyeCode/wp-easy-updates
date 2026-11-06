@@ -71,7 +71,7 @@ Yes, this will work as normal, for github the info will be limited to the releas
 
 == Changelog ==
 
-= 2.1.0 - TBD =
+= 2.0.2 - TBD =
 * Language packs for AyeCode add-ons: sites connected with AyeCode Connect and holding an active licence get translations from api.ayecode.io, installed by WordPress like any other translation update - ADDED
 
 = 2.0.1 - 2026-11-05 =

@@ -58,7 +58,7 @@ class External_Updates_Admin {
 	/**
 	 * Language packs from the API's last update check, kept for the rest of the page load like version_info_cache.
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 * @var array|null
 	 */
 	private $translations_cache = null;
@@ -875,7 +875,7 @@ class External_Updates_Admin {
 	 * installs them (automatically, or from Dashboard > Updates). A wordpress.org entry for the same text domain and
 	 * language is removed first, or core would install that one over ours.
 	 *
-	 * @since 2.1.0
+	 * @since 2.0.2
 	 *
 	 * @param object $_transient_data The update_plugins transient.
 	 * @param string $type            'plugin' or 'theme'.
